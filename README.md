@@ -1,6 +1,51 @@
-# AI-Driven Stock Sentinel (Scaffold)
+# Stock Monitor - AI-Driven Stock Sentiment Analysis & Forecasting
 
-This repository is a starter scaffold for the AI-Driven Stock Sentinel you described: a Flask+ROMA setup that fetches prices, scrapes X/Twitter sentiment, runs short-term forecasts, synthesizes results, stores portfolios in SQLite, and sends alerts via Slack/Email.
+A Flask-based web application that monitors stock portfolios, scrapes sentiment from social media, forecasts price movements, and delivers AI-synthesized alerts.
+
+## How It Works
+
+### 1. **Portfolio Management**
+- Create multiple stock portfolios via the web dashboard
+- Add stock holdings (ticker symbols and share counts) to each portfolio
+- View all holdings and portfolio details in a user-friendly interface
+
+### 2. **Automated Analysis Workflow** (runs on a schedule)
+The app runs a background job that automatically:
+
+- **Price Fetching**: Downloads 14 days of historical stock data using `yfinance`
+- **Sentiment Analysis**: Scrapes Twitter/X posts about each stock using `snscrape` and analyzes sentiment
+- **Forecasting**: Uses `Prophet` time-series forecasting to predict next 3 days of price movements
+- **AI Synthesis**: Multi-agent system processes all data and generates a comprehensive analysis report
+
+### 3. **Alert Generation & Delivery**
+- AI agents synthesize all data into actionable insights
+- Alerts are stored in the database with timestamps
+- Optional Slack webhook integration sends notifications in real-time
+
+### 4. **Web Dashboard**
+- **Dashboard Page**: View all portfolios and quick statistics
+- **Portfolio View**: See holdings, share counts, and recent alerts
+- **Alerts History**: Track all generated alerts with analysis reports
+
+## Technology Stack
+
+| Component | Technology |
+|-----------|-----------|
+| **Web Server** | Flask + Jinja2 templates |
+| **Database** | SQLAlchemy + SQLite |
+| **Scheduling** | APScheduler (background jobs) |
+| **Stock Data** | yfinance |
+| **Sentiment** | Twitter/X scraping (snscrape) + VADER sentiment analysis |
+| **Forecasting** | Facebook Prophet |
+| **AI Analysis** | ROMA multi-agent framework |
+| **Notifications** | Slack webhooks, Email support |
+
+## Getting Started
+
+1. Install dependencies: `pip install -r requirements.txt`
+2. Configure environment variables (database URL, Slack webhook, etc.)
+3. Run the app: `python app.py`
+4. Access the dashboard at `http://localhost:5000`
 
 ## Architecture Overview
 
