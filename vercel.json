@@ -2,7 +2,7 @@
   "builds": [
     {
       "src": "app.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python@3.1.0"
     }
   ],
   "routes": [
@@ -13,5 +13,7 @@
   ],
   "env": {
     "PYTHONUNBUFFERED": "1"
-  }
+  },
+  "buildCommand": "pip install --no-cache-dir -r requirements.txt",
+  "outputDirectory": ""
 }
