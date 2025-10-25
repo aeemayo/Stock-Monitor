@@ -1,0 +1,14 @@
+Flask
+APScheduler
+pandas
+yfinance
+prophet
+sqlalchemy
+python-dotenv
+requests
+snscrape
+nltk
+vaderSentiment
+python-slugify
+pytest
+gunicorn 

@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts - Stock Sentinel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="mb-0">
+        <i class="fas fa-bell"></i> Recent Alerts
+    </h1>
+</div>
+
+<!-- Filter Options -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-filter"></i> Filters
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="/alerts" class="row g-3">
+            <div class="col-md-4">
+                <label for="portfolioFilter" class="form-label">Filter by Portfolio</label>
+                <select class="form-select" id="portfolioFilter" name="portfolio_id" onchange="this.form.submit()">
+                    <option value="">All Portfolios</option>
+                    {% for p in all_portfolios %}
+                        <option value="{{ p.id }}" {% if p.id == selected_portfolio %}selected{% endif %}>
+                            {{ p.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="dateFrom" class="form-label">From Date</label>
+                <input type="date" class="form-control" id="dateFrom" name="date_from" 
+                       value="{{ date_from }}" onchange="this.form.submit()">
+            </div>
+            <div class="col-md-4">
+                <label for="dateTo" class="form-label">To Date</label>
+                <input type="date" class="form-control" id="dateTo" name="date_to" 
+                       value="{{ date_to }}" onchange="this.form.submit()">
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Alerts List -->
+<div id="alertsList">
+    {% if alerts %}
+        <div class="mb-3">
+            <p class="text-muted">
+                <i class="fas fa-info-circle"></i> 
+                Showing {{ alerts|length }} alert(s) 
+                {% if selected_portfolio %} for selected portfolio{% endif %}
+            </p>
+        </div>
+        
+        {% for alert in alerts %}
+            <div class="alert-item">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div style="flex: 1;">
+                        <h6 class="mb-1">
+                            <i class="fas fa-bullseye text-info"></i>
+                            Portfolio: <strong>{{ alert.portfolio_name or 'N/A' }}</strong>
+                        </h6>
+                        <p class="mb-2 text-break">{{ alert.message }}</p>
+                        <small class="timestamp">
+                            <i class="fas fa-clock"></i> 
+                            {{ alert.created_at.strftime('%B %d, %Y at %I:%M %p') if alert.created_at else 'Unknown time' }}
+                        </small>
+                    </div>
+                    <div class="ms-2">
+                        <button class="btn btn-sm btn-outline-secondary" 
+                                hx-post="/alert/{{ alert.id }}/dismiss"
+                                hx-confirm="Dismiss this alert?"
+                                hx-swap="outerHTML swap:1s"
+                                title="Dismiss this alert">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+        
+        <!-- Load More Button -->
+        <div class="text-center mt-4">
+            <button class="btn btn-outline-primary"
+                    hx-get="/alerts/load-more"
+                    hx-target="#alertsList"
+                    hx-swap="beforeend">
+                <i class="fas fa-sync-alt"></i> Load More Alerts
+            </button>
+        </div>
+    {% else %}
+        <div class="card empty-state">
+            <div>
+                <i class="fas fa-check-circle"></i>
+                <h4 class="mt-3">No alerts</h4>
+                <p>
+                    {% if selected_portfolio %}
+                        No alerts found for the selected portfolio.
+                    {% else %}
+                        Alerts will appear here when the ROMA workflow generates them.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Auto-refresh Controls -->
+<div class="fixed-bottom m-3 d-flex gap-2">
+    <button class="btn btn-primary" id="autoRefreshBtn" 
+            onclick="toggleAutoRefresh(this)"
+            title="Toggle automatic alert refresh">
+        <i class="fas fa-play-circle"></i> Auto-refresh: OFF
+    </button>
+    <button class="btn btn-outline-secondary" 
+            id="manualRefreshBtn"
+            title="Manually refresh alerts list">
+        <i class="fas fa-sync-alt"></i> Refresh Now
+    </button>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let autoRefreshEnabled = false;
+    let autoRefreshInterval = null;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const manualRefreshBtn = document.getElementById('manualRefreshBtn');
+        if (manualRefreshBtn) {
+            manualRefreshBtn.addEventListener('click', function() {
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+                
+                setTimeout(() => {
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Now';
+                    
+                    // Perform the refresh
+                    htmx.ajax('GET', '/alerts', '#alertsList');
+                }, 1000);
+            });
+        }
+    });
+    
+    function toggleAutoRefresh(button) {
+        autoRefreshEnabled = !autoRefreshEnabled;
+        
+        if (autoRefreshEnabled) {
+            button.classList.remove('btn-outline-secondary');
+            button.classList.add('btn-primary');
+            button.innerHTML = '<i class="fas fa-pause-circle"></i> Auto-refresh: ON';
+            
+            // Refresh every 30 seconds
+            autoRefreshInterval = setInterval(() => {
+                fetch('/alerts')
+                    .then(response => response.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const newDoc = parser.parseFromString(html, 'text/html');
+                        const newAlerts = newDoc.querySelector('#alertsList').innerHTML;
+                        document.querySelector('#alertsList').innerHTML = newAlerts;
+                    });
+            }, 30000);
+        } else {
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-outline-secondary');
+            button.innerHTML = '<i class="fas fa-play-circle"></i> Auto-refresh: OFF';
+            
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+    }
+</script>
+{% endblock %}

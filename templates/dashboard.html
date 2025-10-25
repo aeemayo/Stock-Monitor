@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Stock Sentinel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="mb-0">
+        <i class="fas fa-briefcase"></i> Your Portfolios
+    </h1>
+</div>
+
+<!-- Create Portfolio Form -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus-circle"></i> Create New Portfolio
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/portfolio/create" class="needs-validation" novalidate>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="portfolioName" class="form-label">Portfolio Name</label>
+                            <input type="text" class="form-control" id="portfolioName" name="name" 
+                                   placeholder="e.g., Tech Stocks, My Watchlist" required>
+                            <div class="invalid-feedback">
+                                Please provide a portfolio name.
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="portfolioDesc" class="form-label">Description (optional)</label>
+                            <input type="text" class="form-control" id="portfolioDesc" name="description" 
+                                   placeholder="Brief description">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-3">
+                        <i class="fas fa-plus"></i> Create Portfolio
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Card -->
+    <div class="col-lg-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="card-title text-muted">
+                    <i class="fas fa-chart-bar"></i> Portfolio Statistics
+                </h6>
+                <div class="mb-3">
+                    <h3 class="text-primary mb-0">{{ portfolios|length }}</h3>
+                    <small class="text-muted">Total Portfolios</small>
+                </div>
+                <div>
+                    <h3 class="text-success mb-0">{{ total_holdings }}</h3>
+                    <small class="text-muted">Total Holdings</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Portfolios List -->
+{% if portfolios %}
+    <div class="row">
+        {% for portfolio in portfolios %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card portfolio-card h-100">
+                    <div class="card-overlay"></div>
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-wallet text-primary"></i> {{ portfolio.name }}
+                        </h5>
+                        <p class="card-text text-muted small">
+                            ID: <code>{{ portfolio.id }}</code>
+                        </p>
+                        {% if portfolio.holdings %}
+                            <p class="card-text">
+                                <span class="badge bg-info badge-custom">{{ portfolio.holdings|length }} holding(s)</span>
+                            </p>
+                        {% else %}
+                            <p class="card-text">
+                                <span class="badge bg-secondary badge-custom">No holdings yet</span>
+                            </p>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-light">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="/portfolio/{{ portfolio.id }}" class="btn btn-outline-primary" title="View details">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                            <a href="/portfolio/{{ portfolio.id }}/edit" class="btn btn-outline-secondary" title="Edit portfolio">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <button type="button" class="btn btn-outline-danger delete-portfolio-btn" 
+                                    data-portfolio-id="{{ portfolio.id }}"
+                                    data-portfolio-name="{{ portfolio.name }}"
+                                    title="Delete portfolio">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="card empty-state">
+        <div>
+            <i class="fas fa-inbox"></i>
+            <h4 class="mt-3">No portfolios yet</h4>
+            <p>Create your first portfolio to get started!</p>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Portfolio?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="deleteMessage"></p>
+                <p class="text-danger"><small><i class="fas fa-warning"></i> This action cannot be undone.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Form validation
+    (function() {
+        'use strict';
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    })();
+    
+    // Delete portfolio button handlers
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteButtons = document.querySelectorAll('.delete-portfolio-btn');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const portfolioId = this.dataset.portfolioId;
+                const portfolioName = this.dataset.portfolioName;
+                deletePortfolio(portfolioId, portfolioName);
+            });
+        });
+    });
+    
+    function deletePortfolio(portfolioId, portfolioName) {
+        document.getElementById('deleteMessage').textContent = 
+            `Are you sure you want to delete the portfolio "${portfolioName}"? All associated holdings and alerts will be removed.`;
+        document.getElementById('deleteForm').action = `/portfolio/${portfolioId}/delete`;
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    }
+</script>
+{% endblock %}

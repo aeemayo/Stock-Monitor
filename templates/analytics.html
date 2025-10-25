@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - Stock Sentinel{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<style>
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin-bottom: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="mb-0">
+        <i class="fas fa-chart-line"></i> Analytics & Performance
+    </h1>
+</div>
+
+<!-- Portfolio Performance Overview -->
+<div class="row mb-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Portfolio Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="portfolioChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Holdings by Portfolio</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="holdingsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alerts Timeline -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Alerts Over Time</h5>
+    </div>
+    <div class="card-body">
+        <div class="chart-container" style="height: 300px;">
+            <canvas id="alertsChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Price Forecast Example (would need real data) -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Sample Price Forecast (AAPL)</h5>
+    </div>
+    <div class="card-body">
+        <p class="text-muted"><small>This is a placeholder. Real forecast data comes from the Prophet model.</small></p>
+        <div class="chart-container">
+            <canvas id="forecastChart"></canvas>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Portfolio Distribution Chart
+    const portfolioCtx = document.getElementById('portfolioChart').getContext('2d');
+    new Chart(portfolioCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Tech Stocks', 'ETFs', 'Blue Chip'],
+            datasets: [{
+                data: [45, 30, 25],
+                backgroundColor: ['#0d6efd', '#198754', '#ffc107'],
+                borderColor: ['rgba(255,255,255,0.3)'],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Holdings Count Chart
+    const holdingsCtx = document.getElementById('holdingsChart').getContext('2d');
+    new Chart(holdingsCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Tech Stocks', 'ETFs', 'Blue Chip'],
+            datasets: [{
+                label: 'Holdings Count',
+                data: [12, 8, 5],
+                backgroundColor: '#0d6efd',
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    // Alerts Timeline
+    const alertsCtx = document.getElementById('alertsChart').getContext('2d');
+    new Chart(alertsCtx, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Alerts Generated',
+                data: [3, 5, 2, 8, 4, 2, 1],
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#0d6efd',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    // Price Forecast Chart
+    const forecastCtx = document.getElementById('forecastChart').getContext('2d');
+    new Chart(forecastCtx, {
+        type: 'line',
+        data: {
+            labels: ['Today', '+1d', '+2d', '+3d', '+4d', '+5d', '+6d', '+7d'],
+            datasets: [
+                {
+                    label: 'Historical Price',
+                    data: [175, 176, 178, 179, 180, 182, 181, 183],
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.05)',
+                    tension: 0.4,
+                    fill: false,
+                    pointBackgroundColor: '#0d6efd'
+                },
+                {
+                    label: 'Forecast (Prophet)',
+                    data: [null, null, null, null, null, 185, 187, 189],
+                    borderColor: '#198754',
+                    borderDash: [5, 5],
+                    tension: 0.4,
+                    fill: false,
+                    pointBackgroundColor: '#198754'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    min: 170,
+                    max: 195
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
