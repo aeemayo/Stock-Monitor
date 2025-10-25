@@ -2,7 +2,10 @@
   "builds": [
     {
       "src": "app.py",
-      "use": "@vercel/python@3.1.0"
+      "use": "@vercel/python@3.12.0",
+      "config": {
+        "runtime": "python3.12"
+      }
     }
   ],
   "routes": [
@@ -13,7 +16,5 @@
   ],
   "env": {
     "PYTHONUNBUFFERED": "1"
-  },
-  "buildCommand": "pip install --no-cache-dir -r requirements.txt",
-  "outputDirectory": ""
+  }
 }
