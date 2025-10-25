@@ -17,8 +17,9 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-pro
 # Initialize on startup
 def initialize_app():
     init_db(app.config['DATABASE_URL'])
-    # start the background scheduler which will run ROMA daily
-    start_scheduler(app)
+    # Don't start scheduler on serverless
+    if os.getenv('ENVIRONMENT') != 'vercel':
+        start_scheduler(app)
 
 # ================== DASHBOARD ROUTES ==================
 
@@ -329,6 +330,18 @@ def not_found(error):
 def internal_error(error):
     flash('An internal error occurred', 'error')
     return redirect(url_for('dashboard'))
+
+@app.route('/api/run-workflow', methods=['POST'])
+def run_workflow_api():
+    token = request.headers.get('Authorization')
+    if token != f"Bearer {os.getenv('CRON_SECRET')}":
+        return {"error": "Unauthorized"}, 401
+    
+    try:
+        run_root_workflow()
+        return {"status": "success"}
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 if __name__ == '__main__':
     initialize_app()

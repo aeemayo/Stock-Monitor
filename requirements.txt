@@ -4,6 +4,7 @@ pandas
 yfinance
 prophet
 sqlalchemy
+psycopg2-binary
 python-dotenv
 requests
 snscrape
@@ -11,4 +12,4 @@ nltk
 vaderSentiment
 python-slugify
 pytest
-gunicorn 
+gunicorn
