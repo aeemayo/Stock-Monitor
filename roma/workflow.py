@@ -1,7 +1,6 @@
 from .agents import PriceAgent, SentimentAgent, ForecastAgent, SynthesizerAgent
 from db import get_db_connection, put_db_connection
 import os
-import requests
 from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
 from . import ROMA_AVAILABLE, roma_framework
@@ -12,20 +11,6 @@ price_agent = PriceAgent()
 sent_agent = SentimentAgent()
 forecast_agent = ForecastAgent()
 synth = SynthesizerAgent()
-
-SLACK_WEBHOOK = os.getenv('SLACK_WEBHOOK_URL')
-
-
-def send_slack(msg):
-    if not SLACK_WEBHOOK:
-        return False
-    try:
-        requests.post(SLACK_WEBHOOK, json={"text": msg})
-    except Exception as e:
-        print('Failed to send Slack message:', e)
-        return False
-    return True
-
 
 def run_root_workflow(portfolio_id=None):
     """Root runner: if an external ROMA framework is installed and exposes a
@@ -65,9 +50,6 @@ def run_root_workflow(portfolio_id=None):
                     (h['portfolio_id'], report)
                 )
                 conn.commit()
-                
-                # send slack
-                send_slack(report)
                 
     except Exception as e:
         conn.rollback()

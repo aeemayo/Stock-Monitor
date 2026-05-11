@@ -20,7 +20,6 @@ The app runs a background job that automatically:
 ### 3. **Alert Generation & Delivery**
 - AI agents synthesize all data into actionable insights
 - Alerts are stored in the database with timestamps
-- Optional Slack webhook integration sends notifications in real-time
 
 ### 4. **Web Dashboard**
 - **Dashboard Page**: View all portfolios and quick statistics
@@ -38,12 +37,12 @@ The app runs a background job that automatically:
 | **Sentiment** | Twitter/X scraping (snscrape) + VADER sentiment analysis |
 | **Forecasting** | Facebook Prophet |
 | **AI Analysis** | ROMA multi-agent framework |
-| **Notifications** | Slack webhooks, Email support |
+| **Notifications** | Email support |
 
 ## Getting Started
 
 1. Install dependencies: `pip install -r requirements.txt`
-2. Configure environment variables (database URL, Slack webhook, etc.)
+2. Configure environment variables (database URL, etc.)
 3. Run the app: `python app.py`
 4. Access the dashboard at `http://localhost:5000`
 
@@ -57,7 +56,7 @@ The app runs a background job that automatically:
 - **yfinance**: Stock price data fetching
 - **snscrape**: Twitter/X sentiment scraping
 - **Prophet**: Time-series forecasting
-- **Slack/Email**: Alert notifications
+- **Email**: Alert notifications
 
 ---
 
@@ -269,7 +268,7 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-# edit .env and fill SLACK_WEBHOOK_URL, SMTP_* etc.
+# edit .env and fill SMTP_* etc.
 ```
 
 3. Run the Flask app:
