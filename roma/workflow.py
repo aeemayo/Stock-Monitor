@@ -1,9 +1,9 @@
 from .agents import PriceAgent, SentimentAgent, ForecastAgent, SynthesizerAgent
-from db import get_session
-from models import Alert, Holding, Portfolio
+from db import get_db_connection, put_db_connection
 import os
 import requests
 from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
 from . import ROMA_AVAILABLE, roma_framework
 
 load_dotenv()
@@ -43,23 +43,36 @@ def run_root_workflow(portfolio_id=None):
                 print('ROMA run_workflow failed; falling back to local workflow:', e)
 
     # Local fallback implementation
-    session = get_session()
-    if portfolio_id:
-        holdings = session.query(Holding).filter(Holding.portfolio_id == portfolio_id).all()
-    else:
-        holdings = session.query(Holding).all()
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            if portfolio_id:
+                cur.execute("SELECT * FROM holdings WHERE portfolio_id = %s", (portfolio_id,))
+            else:
+                cur.execute("SELECT * FROM holdings")
+            holdings = cur.fetchall()
 
-    for h in holdings:
-        ticker = h.ticker
-        price_df = price_agent.fetch(ticker, period='14d')
-        sentiment = sent_agent.scrape(ticker)  # searches for the ticker symbol/term
-        forecast = forecast_agent.forecast(price_df, periods=3)
-        report = synth.synthesize(ticker, price_df, sentiment, forecast)
-        # store alert
-        a = Alert(portfolio_id=h.portfolio_id, message=report)
-        session.add(a)
-        session.commit()
-        # send slack
-        send_slack(report)
+            for h in holdings:
+                ticker = h['ticker']
+                price_df = price_agent.fetch(ticker, period='14d')
+                sentiment = sent_agent.scrape(ticker)  # searches for the ticker symbol/term
+                forecast = forecast_agent.forecast(price_df, periods=3)
+                report = synth.synthesize(ticker, price_df, sentiment, forecast)
+                
+                # store alert
+                cur.execute(
+                    "INSERT INTO alerts (portfolio_id, message) VALUES (%s, %s)",
+                    (h['portfolio_id'], report)
+                )
+                conn.commit()
+                
+                # send slack
+                send_slack(report)
+                
+    except Exception as e:
+        conn.rollback()
+        print(f"Workflow error: {e}")
+    finally:
+        put_db_connection(conn)
 
     return True
