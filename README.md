@@ -13,7 +13,7 @@ A Flask-based web application that monitors stock portfolios, scrapes sentiment 
 The app runs a background job that automatically:
 
 - **Price Fetching**: Downloads 14 days of historical stock data using `yfinance`
-- **Sentiment Analysis**: Scrapes Twitter/X posts about each stock using `snscrape` and analyzes sentiment
+- **Sentiment Analysis**: Searches Farcaster casts about each stock using the Neynar API and analyzes sentiment
 - **Forecasting**: Uses `Prophet` time-series forecasting to predict next 3 days of price movements
 - **AI Synthesis**: Multi-agent system processes all data and generates a comprehensive analysis report
 
@@ -34,7 +34,7 @@ The app runs a background job that automatically:
 | **Database** | SQLAlchemy + SQLite |
 | **Scheduling** | APScheduler (background jobs) |
 | **Stock Data** | yfinance |
-| **Sentiment** | Twitter/X scraping (snscrape) + VADER sentiment analysis |
+| **Sentiment** | Farcaster casts (Neynar API) + VADER sentiment analysis |
 | **Forecasting** | Facebook Prophet |
 | **AI Analysis** | ROMA multi-agent framework |
 | **Notifications** | Email support |
@@ -54,7 +54,7 @@ The app runs a background job that automatically:
 - **APScheduler**: Scheduled background jobs that run the ROMA workflow at market close
 - **ROMA Agents**: Multi-agent AI framework for price analysis, sentiment analysis, forecasting, and synthesis
 - **yfinance**: Stock price data fetching
-- **snscrape**: Twitter/X sentiment scraping
+- **Neynar API**: Farcaster sentiment search
 - **Prophet**: Time-series forecasting
 - **Email**: Alert notifications
 
@@ -281,7 +281,7 @@ The APScheduler job will run in-process and trigger the ROMA workflow near marke
 
 Notes & next steps
 - This is a scaffold. You should add API keys and test scraping on your machine.
-- The sentiment scrapers use `snscrape` (no Twitter API key required) as a starting point.
+- The sentiment scrapers use the Neynar API (requires NEYNAR_API_KEY in .env).
 - The forecasting agent uses `prophet` by default; if installation is problematic you can swap to a lightweight sklearn regressor.
 
 Installing ROMA (optional)

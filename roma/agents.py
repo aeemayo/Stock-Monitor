@@ -1,8 +1,8 @@
 import datetime
 import yfinance as yf
 import pandas as pd
-import subprocess
-import shlex
+import requests
+import os
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from prophet import Prophet
 
@@ -18,24 +18,29 @@ class PriceAgent:
         return df
 
 class SentimentAgent:
-    """Scrape X/Twitter using snscrape (if available) and score sentiment with VADER."""
-    def scrape(self, query, max_tweets=200):
-        # Use snscrape's python API via subprocess to keep dependency simple and avoid API keys
+    """Search Farcaster casts via Neynar API and score sentiment with VADER."""
+    def scrape(self, query, max_tweets=50):
+        api_key = os.getenv('NEYNAR_API_KEY')
+        if not api_key:
+            return {'count':0, 'avg':0.0, 'scores':[]}
+            
         try:
-            cmd = f"snscrape --jsonl --max {max_tweets} twitter-search '{query}'"
-            parts = shlex.split(cmd)
-            p = subprocess.run(parts, capture_output=True, text=True, check=True)
-            tweets = [l for l in p.stdout.splitlines() if l.strip()]
-            texts = []
-            for line in tweets:
-                try:
-                    import json
-                    obj = json.loads(line)
-                    texts.append(obj.get('content',''))
-                except Exception:
-                    continue
-        except Exception:
-            # as a fallback return empty list
+            url = "https://api.neynar.com/v2/farcaster/cast/search"
+            params = {
+                "q": query,
+                "limit": max_tweets
+            }
+            headers = {
+                "accept": "application/json",
+                "api_key": api_key
+            }
+            response = requests.get(url, params=params, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            
+            texts = [cast.get('text', '') for cast in data.get('result', {}).get('casts', [])]
+        except Exception as e:
+            print(f"Error fetching from Neynar API: {e}")
             texts = []
 
         scores = [analyzer.polarity_scores(t)['compound'] for t in texts if t]
