@@ -31,7 +31,7 @@ The app runs a background job that automatically:
 | Component | Technology |
 |-----------|-----------|
 | **Web Server** | Flask + Jinja2 templates |
-| **Database** | SQLAlchemy + SQLite |
+| **Database** | PostgreSQL (psycopg2) |
 | **Scheduling** | APScheduler (background jobs) |
 | **Stock Data** | yfinance |
 | **Sentiment** | Farcaster casts (Neynar API) + VADER sentiment analysis |
@@ -50,7 +50,7 @@ The app runs a background job that automatically:
 
 ### Backend Stack
 - **Flask**: Web server and REST API endpoints
-- **SQLAlchemy + SQLite**: Data persistence layer (portfolios, holdings, alerts)
+- **PostgreSQL (psycopg2)**: Data persistence layer (portfolios, holdings, alerts)
 - **APScheduler**: Scheduled background jobs that run the ROMA workflow at market close
 - **ROMA Agents**: Multi-agent AI framework for price analysis, sentiment analysis, forecasting, and synthesis
 - **yfinance**: Stock price data fetching
@@ -129,9 +129,9 @@ Browser Request (GET /dashboard)
     ↓
 Flask app.py routes request to dashboard() function
     ↓
-Function calls get_session() from db.py
+Function calls get_db_connection() from db.py
     ↓
-SQLAlchemy retrieves data from SQLite
+psycopg2 retrieves data from PostgreSQL
     ↓
 Jinja2 template renders data as HTML
     ↓
@@ -157,28 +157,29 @@ Frontend displays on /alerts page
 
 The frontend currently makes **server-side** requests (no JavaScript/AJAX). All data retrieval happens on the server before the HTML is rendered.
 
-#### Session Management
-- **`db.get_session()`**: Returns a SQLAlchemy session
-- Called by each Flask route to query the database
+#### Connection Management
+- **`db.get_db_connection()`**: Returns a raw psycopg2 connection from the connection pool
+- Called by each Flask route to query the database using `RealDictCursor`
 - Automatically handles connection pooling and thread safety
 
-#### Database Models (orm.py)
-```python
-Portfolio
-  ├─ id (Integer, primary key)
-  └─ name (String)
+#### Database Schema (PostgreSQL)
+We use raw SQL tables (no ORM). Data is returned as Python dictionaries.
+```sql
+portfolios
+  ├─ id (SERIAL, primary key)
+  └─ name (VARCHAR)
 
-Holding
-  ├─ id (Integer, primary key)
-  ├─ portfolio_id (Foreign Key → Portfolio.id)
-  ├─ ticker (String)
-  └─ shares (Float)
+holdings
+  ├─ id (SERIAL, primary key)
+  ├─ portfolio_id (Foreign Key → portfolios.id)
+  ├─ ticker (VARCHAR)
+  └─ shares (FLOAT)
 
-Alert
-  ├─ id (Integer, primary key)
-  ├─ portfolio_id (Foreign Key → Portfolio.id)
-  ├─ message (Text) ← Contains synthesis results
-  └─ created_at (DateTime)
+alerts
+  ├─ id (SERIAL, primary key)
+  ├─ portfolio_id (Foreign Key → portfolios.id)
+  ├─ message (TEXT) ← Contains synthesis results
+  └─ created_at (TIMESTAMP)
 ```
 
 ---
@@ -264,14 +265,21 @@ source .venv/Scripts/activate   # on Windows use: .venv\\Scripts\\activate
 pip install -r requirements.txt
 ```
 
-2. Copy the example env file and edit secrets:
+2. Start a PostgreSQL database using Docker:
+
+```bash
+docker run --name stocks-postgres -e POSTGRES_USER=aeem -e POSTGRES_PASSWORD=bunymide -e POSTGRES_DB=stocks_db -p 5432:5432 -d postgres
+```
+
+3. Copy the example env file and match the database credentials:
 
 ```bash
 cp .env.example .env
-# edit .env and fill SMTP_* etc.
+# Ensure DATABASE_URL=postgresql://aeem:bunymide@localhost:5432/stocks_db
+# Add your NEYNAR_API_KEY
 ```
 
-3. Run the Flask app:
+4. Run the Flask app:
 
 ```bash
 flask run --host=0.0.0.0 --port=5000
