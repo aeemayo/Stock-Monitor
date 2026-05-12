@@ -2,213 +2,178 @@
 
 {% block title %}Analytics - Stock Sentinel{% endblock %}
 
-{% block extra_css %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
-<style>
-    .chart-container {
-        position: relative;
-        height: 400px;
-        margin-bottom: 2rem;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="page-header">
-    <h1 class="mb-0">
-        <i class="fas fa-chart-line"></i> Analytics & Performance
-    </h1>
-</div>
+<!-- Performance Header -->
+<header class="bg-gradient-to-r from-primary-container/20 to-surface-container rounded-xl p-lg glass-stroke flex flex-col md:flex-row justify-between items-start md:items-center gap-md mb-gutter">
+    <div>
+        <h2 class="font-display-lg text-display-lg text-on-surface flex items-center gap-sm">
+            <span class="material-symbols-outlined text-primary text-4xl" data-icon="analytics">analytics</span>
+            Analytics &amp; Performance
+        </h2>
+        <p class="font-body-lg text-body-lg text-on-surface-variant mt-xs">Comprehensive overview of portfolio metrics and predictive models.</p>
+    </div>
+    <div class="flex gap-sm">
+        <div class="bg-surface-container-high rounded-lg p-sm border border-outline-variant/20 flex flex-col items-end min-w-[120px]">
+            <span class="font-label-caps text-label-caps text-on-surface-variant">Total Value</span>
+            <span class="font-data-mono text-headline-md text-on-surface mt-xs">$1.24M</span>
+        </div>
+        <div class="bg-surface-container-high rounded-lg p-sm border border-outline-variant/20 flex flex-col items-end min-w-[120px]">
+            <span class="font-label-caps text-label-caps text-on-surface-variant">30D Return</span>
+            <span class="font-data-mono text-headline-md text-secondary mt-xs">+4.2%</span>
+        </div>
+    </div>
+</header>
 
-<!-- Portfolio Performance Overview -->
-<div class="row mb-4">
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Portfolio Distribution</h5>
+<!-- Dashboard Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter mb-xl">
+    <!-- Portfolio Distribution (Donut) -->
+    <section class="bg-surface/40 backdrop-blur-xl rounded-xl p-lg glass-stroke flex flex-col hover:glow-primary transition-shadow duration-300">
+        <h3 class="font-headline-md text-headline-md text-on-surface mb-lg border-b border-outline-variant/20 pb-sm">Portfolio Distribution</h3>
+        <div class="flex-grow flex items-center justify-center relative min-h-[250px]">
+            <svg class="w-48 h-48 drop-shadow-lg" viewbox="0 0 100 100">
+                <circle cx="50" cy="50" fill="transparent" r="40" stroke="#32353c" stroke-width="16"></circle>
+                <circle cx="50" cy="50" fill="transparent" r="40" stroke="#4d8eff" stroke-dasharray="100 151.2" stroke-dashoffset="0" stroke-width="16"></circle>
+                <circle cx="50" cy="50" fill="transparent" r="40" stroke="#00a572" stroke-dasharray="75 176.2" stroke-dashoffset="-100" stroke-width="16"></circle>
+                <circle cx="50" cy="50" fill="transparent" r="40" stroke="#ca8100" stroke-dasharray="50 201.2" stroke-dashoffset="-175" stroke-width="16"></circle>
+            </svg>
+            <div class="absolute inset-0 flex items-center justify-center flex-col">
+                <span class="font-data-mono text-headline-md text-on-surface">3</span>
+                <span class="font-label-caps text-label-caps text-on-surface-variant">Assets</span>
             </div>
-            <div class="card-body">
-                <div class="chart-container">
-                    <canvas id="portfolioChart"></canvas>
+        </div>
+        <div class="flex justify-center gap-md mt-md">
+            <div class="flex items-center gap-xs"><span class="w-3 h-3 rounded-full bg-primary-container"></span><span class="font-body-sm text-body-sm text-on-surface-variant">Tech Stocks</span></div>
+            <div class="flex items-center gap-xs"><span class="w-3 h-3 rounded-full bg-secondary-container"></span><span class="font-body-sm text-body-sm text-on-surface-variant">ETFs</span></div>
+            <div class="flex items-center gap-xs"><span class="w-3 h-3 rounded-full bg-tertiary-container"></span><span class="font-body-sm text-body-sm text-on-surface-variant">Blue Chip</span></div>
+        </div>
+    </section>
+
+    <!-- Holdings by Portfolio (Bar) -->
+    <section class="bg-surface/40 backdrop-blur-xl rounded-xl p-lg glass-stroke flex flex-col hover:glow-primary transition-shadow duration-300">
+        <h3 class="font-headline-md text-headline-md text-on-surface mb-lg border-b border-outline-variant/20 pb-sm">Holdings by Sector</h3>
+        <div class="flex-grow flex flex-col justify-center gap-md min-h-[250px] relative">
+            <div class="absolute inset-0 flex justify-between z-0 pointer-events-none px-[60px]">
+                <div class="w-px h-full bg-outline-variant/10"></div>
+                <div class="w-px h-full bg-outline-variant/10"></div>
+                <div class="w-px h-full bg-outline-variant/10"></div>
+                <div class="w-px h-full bg-outline-variant/10"></div>
+            </div>
+            <div class="flex items-center z-10">
+                <span class="w-[60px] font-body-sm text-body-sm text-on-surface-variant text-right pr-sm">Tech</span>
+                <div class="h-8 bg-gradient-to-r from-primary/80 to-primary-container rounded-r-sm w-[80%] relative group">
+                    <span class="absolute right-xs top-1/2 -translate-y-1/2 font-data-mono text-label-caps text-on-primary-container opacity-0 group-hover:opacity-100 transition-opacity">12.5k</span>
+                </div>
+            </div>
+            <div class="flex items-center z-10">
+                <span class="w-[60px] font-body-sm text-body-sm text-on-surface-variant text-right pr-sm">ETFs</span>
+                <div class="h-8 bg-gradient-to-r from-secondary/80 to-secondary-container rounded-r-sm w-[60%] relative group">
+                    <span class="absolute right-xs top-1/2 -translate-y-1/2 font-data-mono text-label-caps text-on-secondary-container opacity-0 group-hover:opacity-100 transition-opacity">8.2k</span>
+                </div>
+            </div>
+            <div class="flex items-center z-10">
+                <span class="w-[60px] font-body-sm text-body-sm text-on-surface-variant text-right pr-sm">Blue</span>
+                <div class="h-8 bg-gradient-to-r from-tertiary/80 to-tertiary-container rounded-r-sm w-[40%] relative group">
+                    <span class="absolute right-xs top-1/2 -translate-y-1/2 font-data-mono text-label-caps text-on-tertiary-container opacity-0 group-hover:opacity-100 transition-opacity">5.1k</span>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Holdings by Portfolio</h5>
+        <div class="flex justify-between px-[60px] mt-xs text-outline font-data-mono text-label-caps">
+            <span>0</span>
+            <span>4k</span>
+            <span>8k</span>
+            <span>12k</span>
+        </div>
+    </section>
+
+    <!-- Alerts Over Time (Line) -->
+    <section class="md:col-span-2 bg-surface/40 backdrop-blur-xl rounded-xl p-lg glass-stroke flex flex-col hover:glow-primary transition-shadow duration-300">
+        <div class="flex justify-between items-center mb-lg border-b border-outline-variant/20 pb-sm">
+            <h3 class="font-headline-md text-headline-md text-on-surface">Alerts Over Time</h3>
+            <span class="bg-surface-variant/50 text-on-surface-variant px-sm py-xs rounded font-label-caps text-label-caps">Last 7 Days</span>
+        </div>
+        <div class="relative h-[250px] w-full">
+            <div class="absolute inset-0 flex flex-col justify-between z-0 pointer-events-none pb-6">
+                <div class="w-full h-px chart-grid border-b border-outline-variant/10"></div>
+                <div class="w-full h-px chart-grid border-b border-outline-variant/10"></div>
+                <div class="w-full h-px chart-grid border-b border-outline-variant/10"></div>
+                <div class="w-full h-px chart-grid border-b border-outline-variant/10"></div>
+                <div class="w-full h-px chart-grid border-b border-outline-variant/10"></div>
             </div>
-            <div class="card-body">
-                <div class="chart-container">
-                    <canvas id="holdingsChart"></canvas>
+            <svg class="w-full h-[calc(100%-24px)] relative z-10 drop-shadow-md" preserveaspectratio="none" viewbox="0 0 800 200">
+                <defs>
+                    <lineargradient id="lineGrad" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stop-color="#4d8eff" stop-opacity="0.3"></stop>
+                        <stop offset="100%" stop-color="#4d8eff" stop-opacity="0"></stop>
+                    </lineargradient>
+                </defs>
+                <path d="M0,150 Q100,50 200,100 T400,20 T600,120 T800,180 L800,200 L0,200 Z" fill="url(#lineGrad)"></path>
+                <path d="M0,150 Q100,50 200,100 T400,20 T600,120 T800,180" fill="none" stroke="#adc6ff" stroke-width="3"></path>
+                <circle cx="0" cy="150" fill="#10131a" r="4" stroke="#adc6ff" stroke-width="2"></circle>
+                <circle cx="200" cy="100" fill="#10131a" r="4" stroke="#adc6ff" stroke-width="2"></circle>
+                <circle cx="400" cy="20" fill="#10131a" r="4" stroke="#adc6ff" stroke-width="2"></circle>
+                <circle cx="600" cy="120" fill="#10131a" r="4" stroke="#adc6ff" stroke-width="2"></circle>
+                <circle cx="800" cy="180" fill="#10131a" r="4" stroke="#adc6ff" stroke-width="2"></circle>
+            </svg>
+            <div class="absolute bottom-0 w-full flex justify-between text-outline font-data-mono text-label-caps px-xs">
+                <span>Mon</span>
+                <span>Wed</span>
+                <span>Fri</span>
+                <span>Sun</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sample Price Forecast (Line + Dotted) -->
+    <section class="md:col-span-2 bg-surface/40 backdrop-blur-xl rounded-xl p-lg glass-stroke flex flex-col hover:glow-primary transition-shadow duration-300">
+        <div class="flex justify-between items-start mb-md">
+            <div>
+                <h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-sm">
+                    Sample Price Forecast <span class="bg-surface-variant text-on-surface px-xs py-[2px] rounded text-sm font-data-mono">AAPL</span>
+                </h3>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Prophet model projection based on historical trends and current market sentiment.</p>
+            </div>
+            <div class="flex gap-md bg-surface-container-low p-xs rounded border border-outline-variant/20">
+                <div class="flex items-center gap-xs"><span class="w-4 h-[2px] bg-primary"></span><span class="font-label-caps text-label-caps text-on-surface-variant">Historical</span></div>
+                <div class="flex items-center gap-xs"><span class="w-4 h-[2px] border-t-2 border-dashed border-secondary"></span><span class="font-label-caps text-label-caps text-on-surface-variant">Forecast</span></div>
+            </div>
+        </div>
+        <div class="relative h-[300px] w-full mt-sm">
+            <div class="absolute left-0 top-0 h-[calc(100%-24px)] flex flex-col justify-between text-outline font-data-mono text-label-caps w-[30px] pr-xs text-right">
+                <span>195</span>
+                <span>185</span>
+                <span>175</span>
+                <span>165</span>
+            </div>
+            <div class="absolute inset-0 ml-[40px] border-l border-b border-outline-variant/20">
+                <div class="absolute inset-0 flex flex-col justify-between z-0 pointer-events-none">
+                    <div class="w-full h-px chart-grid border-b border-outline-variant/10"></div>
+                    <div class="w-full h-px chart-grid border-b border-outline-variant/10"></div>
+                    <div class="w-full h-px chart-grid border-b border-outline-variant/10"></div>
+                    <div class="w-full h-px chart-grid border-b border-outline-variant/10"></div>
+                </div>
+                <svg class="w-full h-[calc(100%-24px)] relative z-10 mt-sm" preserveaspectratio="none" viewbox="0 0 760 276">
+                    <path d="M0,200 L150,180 L300,160 L450,170 L550,140" fill="none" stroke="#adc6ff" stroke-width="2"></path>
+                    <polygon fill="#00a572" fill-opacity="0.05" points="550,140 760,80 760,276 550,276"></polygon>
+                    <path d="M550,140 L760,80" fill="none" stroke="#4edea3" stroke-dasharray="6,4" stroke-width="2"></path>
+                    <circle cx="0" cy="200" fill="#10131a" r="3" stroke="#adc6ff" stroke-width="1.5"></circle>
+                    <circle cx="150" cy="180" fill="#10131a" r="3" stroke="#adc6ff" stroke-width="1.5"></circle>
+                    <circle cx="300" cy="160" fill="#10131a" r="3" stroke="#adc6ff" stroke-width="1.5"></circle>
+                    <circle cx="450" cy="170" fill="#10131a" r="3" stroke="#adc6ff" stroke-width="1.5"></circle>
+                    <circle cx="550" cy="140" fill="#adc6ff" r="4" stroke="#10131a" stroke-width="2"></circle>
+                    <circle cx="760" cy="80" fill="#10131a" r="3" stroke="#4edea3" stroke-width="1.5"></circle>
+                    <g transform="translate(600, 90)">
+                        <rect fill="#32353c" height="24" opacity="0.8" rx="4" width="80" x="0" y="0"></rect>
+                        <text fill="#6ffbbe" font-family="JetBrains Mono" font-size="12" text-anchor="middle" x="40" y="16">+12.4%</text>
+                    </g>
+                </svg>
+                <div class="absolute bottom-0 w-full flex justify-between text-outline font-data-mono text-label-caps pt-xs">
+                    <span>Today</span>
+                    <span>+2d</span>
+                    <span>+4d</span>
+                    <span>+7d</span>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 </div>
-
-<!-- Alerts Timeline -->
-<div class="card mb-4">
-    <div class="card-header">
-        <h5 class="mb-0">Alerts Over Time</h5>
-    </div>
-    <div class="card-body">
-        <div class="chart-container" style="height: 300px;">
-            <canvas id="alertsChart"></canvas>
-        </div>
-    </div>
-</div>
-
-<!-- Price Forecast Example (would need real data) -->
-<div class="card">
-    <div class="card-header">
-        <h5 class="mb-0">Sample Price Forecast (AAPL)</h5>
-    </div>
-    <div class="card-body">
-        <p class="text-muted"><small>This is a placeholder. Real forecast data comes from the Prophet model.</small></p>
-        <div class="chart-container">
-            <canvas id="forecastChart"></canvas>
-        </div>
-    </div>
-</div>
-
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    // Portfolio Distribution Chart
-    const portfolioCtx = document.getElementById('portfolioChart').getContext('2d');
-    new Chart(portfolioCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Tech Stocks', 'ETFs', 'Blue Chip'],
-            datasets: [{
-                data: [45, 30, 25],
-                backgroundColor: ['#0d6efd', '#198754', '#ffc107'],
-                borderColor: ['rgba(255,255,255,0.3)'],
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    });
-    
-    // Holdings Count Chart
-    const holdingsCtx = document.getElementById('holdingsChart').getContext('2d');
-    new Chart(holdingsCtx, {
-        type: 'bar',
-        data: {
-            labels: ['Tech Stocks', 'ETFs', 'Blue Chip'],
-            datasets: [{
-                label: 'Holdings Count',
-                data: [12, 8, 5],
-                backgroundColor: '#0d6efd',
-                borderRadius: 5
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            indexAxis: 'y',
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                x: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-    
-    // Alerts Timeline
-    const alertsCtx = document.getElementById('alertsChart').getContext('2d');
-    new Chart(alertsCtx, {
-        type: 'line',
-        data: {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            datasets: [{
-                label: 'Alerts Generated',
-                data: [3, 5, 2, 8, 4, 2, 1],
-                borderColor: '#0d6efd',
-                backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                tension: 0.4,
-                fill: true,
-                pointBackgroundColor: '#0d6efd',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-    
-    // Price Forecast Chart
-    const forecastCtx = document.getElementById('forecastChart').getContext('2d');
-    new Chart(forecastCtx, {
-        type: 'line',
-        data: {
-            labels: ['Today', '+1d', '+2d', '+3d', '+4d', '+5d', '+6d', '+7d'],
-            datasets: [
-                {
-                    label: 'Historical Price',
-                    data: [175, 176, 178, 179, 180, 182, 181, 183],
-                    borderColor: '#0d6efd',
-                    backgroundColor: 'rgba(13, 110, 253, 0.05)',
-                    tension: 0.4,
-                    fill: false,
-                    pointBackgroundColor: '#0d6efd'
-                },
-                {
-                    label: 'Forecast (Prophet)',
-                    data: [null, null, null, null, null, 185, 187, 189],
-                    borderColor: '#198754',
-                    borderDash: [5, 5],
-                    tension: 0.4,
-                    fill: false,
-                    pointBackgroundColor: '#198754'
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top'
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    min: 170,
-                    max: 195
-                }
-            }
-        }
-    });
-</script>
 {% endblock %}

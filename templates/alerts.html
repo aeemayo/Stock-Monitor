@@ -3,178 +3,117 @@
 {% block title %}Alerts - Stock Sentinel{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="mb-0">
-        <i class="fas fa-bell"></i> Recent Alerts
-    </h1>
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-md mb-xl">
+    <div>
+        <h2 class="font-display-lg text-display-lg text-on-surface mb-xs flex items-center gap-sm">
+            <span class="material-symbols-outlined text-4xl text-primary" data-weight="fill">notifications</span>
+            Recent Alerts
+        </h2>
+        <p class="font-body-lg text-body-lg text-on-surface-variant">Monitor critical market events and portfolio triggers.</p>
+    </div>
+    <div class="flex items-center gap-sm bg-surface-container rounded-lg p-1 border border-outline-variant/30">
+        <button class="flex items-center gap-xs px-sm py-xs bg-primary text-on-primary rounded font-body-sm text-body-sm font-medium">
+            <span class="material-symbols-outlined text-sm">play_arrow</span>
+            Auto-refresh: ON
+        </button>
+        <a href="{{ url_for('alerts') }}" class="flex items-center gap-xs px-sm py-xs text-on-surface hover:bg-surface-variant rounded font-body-sm text-body-sm transition-colors">
+            <span class="material-symbols-outlined text-sm">refresh</span>
+            Refresh Now
+        </a>
+    </div>
 </div>
 
-<!-- Filter Options -->
-<div class="card mb-4">
-    <div class="card-header">
-        <h5 class="mb-0">
-            <i class="fas fa-filter"></i> Filters
-        </h5>
+<!-- Filters Card -->
+<form method="GET" action="/alerts" class="glass-panel rounded-xl p-lg mb-gutter">
+    <div class="flex items-center justify-between mb-md pb-sm border-b border-outline-variant/30 text-on-surface">
+        <div class="flex items-center gap-xs">
+            <span class="material-symbols-outlined text-on-surface-variant">filter_list</span>
+            <span class="font-headline-md text-body-lg font-medium">Filters</span>
+        </div>
+        <button type="submit" class="text-primary hover:text-primary-fixed-dim text-sm font-semibold transition-colors flex items-center gap-1">
+            Apply <span class="material-symbols-outlined text-sm">check</span>
+        </button>
     </div>
-    <div class="card-body">
-        <form method="GET" action="/alerts" class="row g-3">
-            <div class="col-md-4">
-                <label for="portfolioFilter" class="form-label">Filter by Portfolio</label>
-                <select class="form-select" id="portfolioFilter" name="portfolio_id" onchange="this.form.submit()">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+        <div class="flex flex-col gap-xs">
+            <label class="font-label-caps text-label-caps text-on-surface-variant">Filter by Portfolio</label>
+            <div class="relative">
+                <select name="portfolio_id" class="w-full bg-surface-container-high border border-outline-variant/50 rounded-lg px-sm py-xs text-on-surface font-body-sm text-body-sm appearance-none input-glow outline-none transition-shadow" onchange="this.form.submit()">
                     <option value="">All Portfolios</option>
                     {% for p in all_portfolios %}
-                        <option value="{{ p.id }}" {% if p.id == selected_portfolio %}selected{% endif %}>
-                            {{ p.name }}
-                        </option>
+                        <option value="{{ p.id }}" {% if selected_portfolio == p.id %}selected{% endif %}>{{ p.name }}</option>
                     {% endfor %}
                 </select>
+                <span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
             </div>
-            <div class="col-md-4">
-                <label for="dateFrom" class="form-label">From Date</label>
-                <input type="date" class="form-control" id="dateFrom" name="date_from" 
-                       value="{{ date_from }}" onchange="this.form.submit()">
-            </div>
-            <div class="col-md-4">
-                <label for="dateTo" class="form-label">To Date</label>
-                <input type="date" class="form-control" id="dateTo" name="date_to" 
-                       value="{{ date_to }}" onchange="this.form.submit()">
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Alerts List -->
-<div id="alertsList">
-    {% if alerts %}
-        <div class="mb-3">
-            <p class="text-muted">
-                <i class="fas fa-info-circle"></i> 
-                Showing {{ alerts|length }} alert(s) 
-                {% if selected_portfolio %} for selected portfolio{% endif %}
-            </p>
         </div>
-        
-        {% for alert in alerts %}
-            <div class="alert-item">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div style="flex: 1;">
-                        <h6 class="mb-1">
-                            <i class="fas fa-bullseye text-info"></i>
-                            Portfolio: <strong>{{ alert.portfolio_name or 'N/A' }}</strong>
-                        </h6>
-                        <p class="mb-2 text-break">{{ alert.message }}</p>
-                        <small class="timestamp">
-                            <i class="fas fa-clock"></i> 
-                            {{ alert.created_at.strftime('%B %d, %Y at %I:%M %p') if alert.created_at else 'Unknown time' }}
-                        </small>
-                    </div>
-                    <div class="ms-2">
-                        <button class="btn btn-sm btn-outline-secondary" 
-                                hx-post="/alert/{{ alert.id }}/dismiss"
-                                hx-confirm="Dismiss this alert?"
-                                hx-swap="outerHTML swap:1s"
-                                title="Dismiss this alert">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
+        <div class="flex flex-col gap-xs">
+            <label class="font-label-caps text-label-caps text-on-surface-variant">From Date</label>
+            <div class="relative">
+                <input name="date_from" value="{{ date_from or '' }}" class="w-full bg-surface-container-high border border-outline-variant/50 rounded-lg px-sm py-xs text-on-surface font-body-sm text-body-sm input-glow outline-none transition-shadow" type="date" onchange="this.form.submit()"/>
             </div>
-        {% endfor %}
-        
-        <!-- Load More Button -->
-        <div class="text-center mt-4">
-            <button class="btn btn-outline-primary"
-                    hx-get="/alerts/load-more"
-                    hx-target="#alertsList"
-                    hx-swap="beforeend">
-                <i class="fas fa-sync-alt"></i> Load More Alerts
-            </button>
+        </div>
+        <div class="flex flex-col gap-xs">
+            <label class="font-label-caps text-label-caps text-on-surface-variant">To Date</label>
+            <div class="relative">
+                <input name="date_to" value="{{ date_to or '' }}" class="w-full bg-surface-container-high border border-outline-variant/50 rounded-lg px-sm py-xs text-on-surface font-body-sm text-body-sm input-glow outline-none transition-shadow" type="date" onchange="this.form.submit()"/>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Alerts Data Table / Empty State -->
+<div class="glass-panel rounded-xl flex-1 flex flex-col overflow-hidden relative">
+    {% if alerts %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-outline-variant/30 bg-surface-container-low/50">
+                        <th class="px-md py-sm font-label-caps text-label-caps text-on-surface-variant w-1/4">Portfolio</th>
+                        <th class="px-md py-sm font-label-caps text-label-caps text-on-surface-variant">Message</th>
+                        <th class="px-md py-sm font-label-caps text-label-caps text-on-surface-variant w-1/6">Time</th>
+                        <th class="px-md py-sm font-label-caps text-label-caps text-on-surface-variant text-right w-24">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-outline-variant/20">
+                    {% for alert in alerts %}
+                        <tr class="hover:bg-surface-container-highest/50 transition-colors">
+                            <td class="px-md py-sm">
+                                <span class="font-body-sm text-body-sm font-medium text-primary">{{ alert.portfolio_name }}</span>
+                            </td>
+                            <td class="px-md py-sm">
+                                <p class="font-body-sm text-body-sm text-on-surface whitespace-pre-wrap">{{ alert.message }}</p>
+                            </td>
+                            <td class="px-md py-sm">
+                                <span class="font-data-mono text-label-caps text-on-surface-variant">{{ alert.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </td>
+                            <td class="px-md py-sm text-right">
+                                <form action="/alert/{{ alert.id }}/dismiss" method="POST" class="inline">
+                                    <button type="submit" class="text-on-surface-variant hover:text-error transition-colors p-1 rounded" title="Dismiss">
+                                        <span class="material-symbols-outlined text-sm">close</span>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     {% else %}
-        <div class="card empty-state">
-            <div>
-                <i class="fas fa-check-circle"></i>
-                <h4 class="mt-3">No alerts</h4>
-                <p>
-                    {% if selected_portfolio %}
-                        No alerts found for the selected portfolio.
-                    {% else %}
-                        Alerts will appear here when the ROMA workflow generates them.
-                    {% endif %}
-                </p>
+        <!-- Empty State -->
+        <div class="flex-1 flex flex-col items-center justify-center p-xl text-center min-h-[400px]">
+            <div class="w-24 h-24 rounded-full bg-surface-container-highest flex items-center justify-center mb-md border border-outline-variant/20 shadow-[0_0_40px_rgba(255,255,255,0.02)]">
+                <span class="material-symbols-outlined text-5xl text-outline" data-weight="fill">check_circle</span>
             </div>
+            <h3 class="font-headline-md text-headline-md text-on-surface mb-xs">No alerts</h3>
+            <p class="font-body-lg text-body-lg text-on-surface-variant max-w-md">
+                Alerts will appear here when the ROMA workflow generates them based on your current filter criteria.
+            </p>
+            <a href="{{ url_for('alerts') }}" class="mt-lg px-md py-sm bg-surface-container border border-outline-variant hover:bg-surface-variant text-on-surface rounded-lg font-body-sm text-body-sm font-medium transition-colors">
+                Clear Filters
+            </a>
         </div>
     {% endif %}
 </div>
-
-<!-- Auto-refresh Controls -->
-<div class="fixed-bottom m-3 d-flex gap-2">
-    <button class="btn btn-primary" id="autoRefreshBtn" 
-            onclick="toggleAutoRefresh(this)"
-            title="Toggle automatic alert refresh">
-        <i class="fas fa-play-circle"></i> Auto-refresh: OFF
-    </button>
-    <button class="btn btn-outline-secondary" 
-            id="manualRefreshBtn"
-            title="Manually refresh alerts list">
-        <i class="fas fa-sync-alt"></i> Refresh Now
-    </button>
-</div>
-
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    let autoRefreshEnabled = false;
-    let autoRefreshInterval = null;
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        const manualRefreshBtn = document.getElementById('manualRefreshBtn');
-        if (manualRefreshBtn) {
-            manualRefreshBtn.addEventListener('click', function() {
-                this.disabled = true;
-                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
-                
-                setTimeout(() => {
-                    this.disabled = false;
-                    this.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Now';
-                    
-                    // Perform the refresh
-                    htmx.ajax('GET', '/alerts', '#alertsList');
-                }, 1000);
-            });
-        }
-    });
-    
-    function toggleAutoRefresh(button) {
-        autoRefreshEnabled = !autoRefreshEnabled;
-        
-        if (autoRefreshEnabled) {
-            button.classList.remove('btn-outline-secondary');
-            button.classList.add('btn-primary');
-            button.innerHTML = '<i class="fas fa-pause-circle"></i> Auto-refresh: ON';
-            
-            // Refresh every 30 seconds
-            autoRefreshInterval = setInterval(() => {
-                fetch('/alerts')
-                    .then(response => response.text())
-                    .then(html => {
-                        const parser = new DOMParser();
-                        const newDoc = parser.parseFromString(html, 'text/html');
-                        const newAlerts = newDoc.querySelector('#alertsList').innerHTML;
-                        document.querySelector('#alertsList').innerHTML = newAlerts;
-                    });
-            }, 30000);
-        } else {
-            button.classList.remove('btn-primary');
-            button.classList.add('btn-outline-secondary');
-            button.innerHTML = '<i class="fas fa-play-circle"></i> Auto-refresh: OFF';
-            
-            if (autoRefreshInterval) {
-                clearInterval(autoRefreshInterval);
-                autoRefreshInterval = null;
-            }
-        }
-    }
-</script>
 {% endblock %}
