@@ -357,6 +357,14 @@ def analytics():
     
     return render_template('analytics.html', portfolio_stats=portfolio_stats)
 
+@app.route('/settings')
+def settings():
+    return render_template('settings.html')
+
+@app.route('/support')
+def support():
+    return render_template('support.html')
+
 # ================== ERROR HANDLERS ==================
 
 @app.errorhandler(404)

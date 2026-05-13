@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Support - Stock Sentinel{% endblock %}
+
+{% block content %}
+<header class="mb-xl flex flex-col justify-center items-start gap-md">
+    <div class="flex items-center gap-sm mb-xs">
+        <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">help</span>
+        <h2 class="font-display-lg text-display-lg text-on-surface">Help &amp; Support</h2>
+    </div>
+    <p class="font-body-lg text-body-lg text-on-surface-variant">Find answers, get help, or report issues to the Stock Sentinel team.</p>
+</header>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+    <!-- FAQ Section -->
+    <div class="glass-card rounded-xl p-lg flex flex-col gap-md">
+        <div class="flex items-center gap-xs text-on-surface border-b border-outline-variant/30 pb-sm mb-sm">
+            <span class="material-symbols-outlined">quiz</span>
+            <h3 class="font-headline-md text-headline-md text-lg">Frequently Asked Questions</h3>
+        </div>
+        
+        <div class="flex flex-col gap-md">
+            <div class="flex flex-col gap-1">
+                <h4 class="font-body-lg text-primary font-semibold">How do the AI alerts work?</h4>
+                <p class="font-body-sm text-on-surface-variant leading-relaxed">Alerts are generated daily at market close. Our ROMA multi-agent framework fetches price data, scans Farcaster sentiment via Neynar, runs forecasting, and synthesizes it into actionable alerts.</p>
+            </div>
+            
+            <div class="flex flex-col gap-1 border-t border-outline-variant/10 pt-md">
+                <h4 class="font-body-lg text-primary font-semibold">How do I add more portfolios?</h4>
+                <p class="font-body-sm text-on-surface-variant leading-relaxed">Navigate to the Portfolios page and use the "Quick Create" widget on the left side to add new asset collections instantly.</p>
+            </div>
+            
+            <div class="flex flex-col gap-1 border-t border-outline-variant/10 pt-md">
+                <h4 class="font-body-lg text-primary font-semibold">Why am I not seeing new sentiment data?</h4>
+                <p class="font-body-sm text-on-surface-variant leading-relaxed">Make sure you have correctly set up your `NEYNAR_API_KEY` in the `.env` file of your application. The Farcaster search requires a valid API key.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact & Documentation Box -->
+    <div class="flex flex-col gap-gutter">
+        <div class="glass-card rounded-xl p-lg flex flex-col gap-md border-l-4 border-secondary">
+            <h3 class="font-headline-md text-headline-md text-lg text-on-surface">Documentation</h3>
+            <p class="font-body-sm text-on-surface-variant">Check out the full API documentation and setup guides in the GitHub repository.</p>
+            <a href="#" class="flex items-center gap-xs text-secondary hover:underline w-fit font-body-sm font-semibold">
+                <span class="material-symbols-outlined text-sm">menu_book</span>
+                Read the Docs
+            </a>
+        </div>
+        
+        <div class="glass-card rounded-xl p-lg flex flex-col gap-md">
+            <h3 class="font-headline-md text-headline-md text-lg text-on-surface">Contact Us</h3>
+            <p class="font-body-sm text-on-surface-variant">Still stuck? Send us a message and our support team will get back to you within 24 hours.</p>
+            
+            <form class="flex flex-col gap-sm" onsubmit="event.preventDefault(); alert('Message sent!');">
+                <input required type="text" class="w-full bg-surface-container-high border-b border-outline-variant/30 text-on-surface font-body-sm text-body-sm px-sm py-xs focus:outline-none focus:border-primary focus:bg-surface-container-highest transition-all input-glow" placeholder="Subject"/>
+                <textarea required rows="4" class="w-full bg-surface-container-high border-b border-outline-variant/30 text-on-surface font-body-sm text-body-sm px-sm py-xs focus:outline-none focus:border-primary focus:bg-surface-container-highest transition-all input-glow resize-none" placeholder="Describe your issue..."></textarea>
+                <button type="submit" class="mt-xs py-sm rounded-lg bg-primary text-on-primary font-body-sm text-body-sm font-semibold hover:bg-primary-fixed transition-colors flex justify-center items-center gap-xs shadow-[0_0_15px_rgba(173,198,255,0.2)]">
+                    <span class="material-symbols-outlined text-sm">send</span>
+                    Send Message
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
