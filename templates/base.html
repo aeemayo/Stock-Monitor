@@ -146,9 +146,16 @@
             </a>
         </div>
         <div class="mt-auto flex flex-col gap-xs border-t border-outline-variant/20 pt-md">
-            <button class="w-full py-sm px-md rounded-lg bg-gradient-to-r from-primary-container to-surface-container-high text-on-primary-container font-body-sm text-body-sm font-semibold hover:from-primary hover:to-primary-container transition-all shadow-[0_0_15px_rgba(77,142,255,0.1)]">
-                Upgrade to Pro
-            </button>
+            <!-- User Profile Chip -->
+            <div class="flex items-center gap-sm p-sm mb-xs">
+                <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary/40 text-primary text-sm font-bold flex-shrink-0">
+                    {{ current_user.username[0]|upper }}
+                </div>
+                <div class="flex flex-col overflow-hidden">
+                    <span class="font-body-sm text-on-surface font-semibold truncate">{{ current_user.username }}</span>
+                    <span class="font-label-caps text-label-caps text-on-surface-variant truncate" style="font-size:10px">{{ current_user.email }}</span>
+                </div>
+            </div>
             <a class="flex items-center gap-sm p-sm {% if request.endpoint == 'settings' %}bg-primary-container text-on-primary-container font-bold translate-x-1 duration-200 shadow-[0_0_20px_rgba(59,130,246,0.15)]{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors{% endif %} rounded-lg font-body-sm text-body-sm group" href="{{ url_for('settings') }}">
                 <span class="material-symbols-outlined {% if request.endpoint != 'settings' %}group-hover:text-primary transition-colors{% endif %}" {% if request.endpoint == 'settings' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>settings</span>
                 Settings
@@ -156,6 +163,10 @@
             <a class="flex items-center gap-sm p-sm {% if request.endpoint == 'support' %}bg-primary-container text-on-primary-container font-bold translate-x-1 duration-200 shadow-[0_0_20px_rgba(59,130,246,0.15)]{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors{% endif %} rounded-lg font-body-sm text-body-sm group" href="{{ url_for('support') }}">
                 <span class="material-symbols-outlined {% if request.endpoint != 'support' %}group-hover:text-primary transition-colors{% endif %}" {% if request.endpoint == 'support' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>help_outline</span>
                 Support
+            </a>
+            <a href="{{ url_for('logout') }}" class="flex items-center gap-sm p-sm text-error/80 hover:text-error hover:bg-error-container/10 rounded-lg transition-colors font-body-sm text-body-sm group">
+                <span class="material-symbols-outlined group-hover:scale-110 transition-transform">logout</span>
+                Sign Out
             </a>
         </div>
     </nav>

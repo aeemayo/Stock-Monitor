@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Sign In - Stock Sentinel</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "secondary-container": "#00a572",
+                        "on-secondary-container": "#00311f",
+                        "on-primary": "#002e6a",
+                        "surface": "#10131a",
+                        "error": "#ffb4ab",
+                        "surface-container-lowest": "#0b0e15",
+                        "outline-variant": "#424754",
+                        "surface-container": "#1d2027",
+                        "on-error-container": "#ffdad6",
+                        "on-primary-container": "#00285d",
+                        "secondary": "#4edea3",
+                        "surface-container-highest": "#32353c",
+                        "surface-tint": "#adc6ff",
+                        "on-surface": "#e1e2ec",
+                        "surface-container-low": "#191b23",
+                        "surface-container-high": "#272a31",
+                        "error-container": "#93000a",
+                        "surface-variant": "#32353c",
+                        "outline": "#8c909f",
+                        "primary-container": "#4d8eff",
+                        "primary": "#adc6ff",
+                        "surface-bright": "#363941",
+                        "on-surface-variant": "#c2c6d6",
+                        "background": "#10131a",
+                        "on-background": "#e1e2ec"
+                    },
+                    fontFamily: {
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "body-sm": ["Inter"],
+                        "display-lg": ["Hanken Grotesk"],
+                        "data-mono": ["JetBrains Mono"],
+                        "label-caps": ["Inter"]
+                    },
+                    fontSize: {
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }]
+                    },
+                    spacing: {
+                        "xl": "32px", "sm": "12px", "md": "16px", "xs": "8px", "lg": "24px", "base": "4px"
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-card {
+            background-color: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .input-glow:focus {
+            box-shadow: 0 2px 10px rgba(59, 130, 246, 0.2);
+            border-color: rgba(173, 198, 255, 0.5);
+        }
+        .glow-active {
+            box-shadow: 0 0 40px rgba(77, 142, 255, 0.12);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-lg min-h-screen flex items-center justify-center antialiased p-4">
+    <div class="w-full max-w-md">
+        <!-- Logo -->
+        <div class="flex items-center justify-center gap-sm mb-xl">
+            <span class="material-symbols-outlined text-primary text-4xl" style="font-variation-settings: 'FILL' 1;">monitoring</span>
+            <div>
+                <h1 class="font-display-lg text-[32px] leading-[40px] font-bold text-primary tracking-tight">Stock Sentinel</h1>
+                <p class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-widest">Market Intelligence</p>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-md flex flex-col gap-sm">
+                {% for category, message in messages %}
+                    <div class="px-md py-sm rounded-lg border {% if category == 'error' %}bg-error-container/20 border-error/30 text-error{% else %}bg-secondary-container/20 border-secondary/30 text-secondary{% endif %} font-body-sm text-body-sm flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm">{% if category == 'error' %}error{% else %}check_circle{% endif %}</span>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Login Card -->
+        <div class="glass-card rounded-xl p-xl glow-active">
+            <h2 class="font-headline-md text-headline-md text-on-surface mb-xs text-center">Welcome back</h2>
+            <p class="font-body-sm text-on-surface-variant text-center mb-xl">Sign in to your account to continue</p>
+
+            <form method="POST" action="{{ url_for('login') }}" class="flex flex-col gap-lg">
+                <div class="flex flex-col gap-xs">
+                    <label class="font-label-caps text-label-caps text-on-surface-variant uppercase">Username or Email</label>
+                    <input name="identifier" type="text" value="{{ identifier|default('') }}" required
+                           class="w-full bg-surface-container-high border border-outline-variant/50 rounded-lg px-sm py-sm text-on-surface font-body-sm text-body-sm input-glow outline-none transition-shadow"
+                           placeholder="you@example.com"/>
+                </div>
+                <div class="flex flex-col gap-xs">
+                    <label class="font-label-caps text-label-caps text-on-surface-variant uppercase">Password</label>
+                    <input name="password" type="password" required
+                           class="w-full bg-surface-container-high border border-outline-variant/50 rounded-lg px-sm py-sm text-on-surface font-body-sm text-body-sm input-glow outline-none transition-shadow"
+                           placeholder="••••••••"/>
+                </div>
+                <button type="submit" class="w-full py-sm rounded-lg bg-primary text-on-primary font-body-sm font-bold hover:bg-primary-container transition-colors shadow-[0_0_20px_rgba(173,198,255,0.15)]">
+                    Sign In
+                </button>
+            </form>
+
+            <div class="mt-xl pt-lg border-t border-outline-variant/20 text-center">
+                <p class="font-body-sm text-on-surface-variant">
+                    Don't have an account?
+                    <a href="{{ url_for('register') }}" class="text-primary font-semibold hover:underline">Create one</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

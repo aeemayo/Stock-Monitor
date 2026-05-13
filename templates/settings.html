@@ -70,14 +70,16 @@
     <div class="lg:col-span-4 flex flex-col gap-gutter">
         <div class="glass-card rounded-xl p-lg flex flex-col items-center text-center gap-sm">
             <div class="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center border border-primary/50 text-primary text-2xl font-bold mb-xs">
-                U
+                {{ current_user.username[0]|upper }}
             </div>
-            <h3 class="font-headline-md text-headline-md text-xl text-on-surface">Admin User</h3>
+            <h3 class="font-headline-md text-headline-md text-xl text-on-surface">{{ current_user.username }}</h3>
+            <span class="font-body-sm text-on-surface-variant">{{ current_user.email }}</span>
             <span class="bg-surface-container-highest px-3 py-1 rounded-full text-on-surface-variant font-label-caps text-label-caps tracking-widest uppercase text-xs">Free Tier</span>
             
-            <button class="w-full mt-md py-sm rounded-lg border border-outline-variant text-on-surface font-body-sm text-body-sm font-semibold hover:bg-surface-container-highest transition-colors">
+            <a href="{{ url_for('logout') }}" class="w-full mt-md py-sm rounded-lg border border-error/30 text-error font-body-sm text-body-sm font-semibold hover:bg-error-container/10 transition-colors flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-sm">logout</span>
                 Sign Out
-            </button>
+            </a>
         </div>
     </div>
 </div>

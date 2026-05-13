@@ -1,17 +1,49 @@
 import os
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, flash
+from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from dotenv import load_dotenv
 from db import init_db, get_db_connection, put_db_connection
 from psycopg2.extras import RealDictCursor
 from scheduler import start_scheduler
 from roma.workflow import run_root_workflow
+import bcrypt
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
 load_dotenv()
 
 app = Flask(__name__, template_folder='templates')
 app.config['DATABASE_URL'] = os.getenv('DATABASE_URL', 'postgresql://localhost/stocks')
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+
+# ================== FLASK-LOGIN SETUP ==================
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please sign in to access this page.'
+login_manager.login_message_category = 'error'
+
+class User(UserMixin):
+    """User model that wraps a database row dict for Flask-Login."""
+    def __init__(self, user_dict):
+        self.id = user_dict['id']
+        self.username = user_dict['username']
+        self.email = user_dict['email']
+        self.created_at = user_dict.get('created_at')
+
+@login_manager.user_loader
+def load_user(user_id):
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM users WHERE id = %s", (int(user_id),))
+            row = cur.fetchone()
+            if row:
+                return User(row)
+    finally:
+        put_db_connection(conn)
+    return None
 
 # Initialize on startup
 def initialize_app():
@@ -20,6 +52,109 @@ def initialize_app():
     if os.getenv('ENVIRONMENT') != 'vercel':
         start_scheduler(app)
 
+# ================== AUTH ROUTES ==================
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        
+        # Validation
+        errors = []
+        if not username or len(username) < 3:
+            errors.append('Username must be at least 3 characters.')
+        if not email or '@' not in email:
+            errors.append('A valid email is required.')
+        if not password or len(password) < 6:
+            errors.append('Password must be at least 6 characters.')
+        if password != confirm_password:
+            errors.append('Passwords do not match.')
+        
+        if errors:
+            for err in errors:
+                flash(err, 'error')
+            return render_template('register.html', username=username, email=email)
+        
+        # Check for existing user
+        conn = get_db_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT id FROM users WHERE username = %s OR email = %s", (username, email))
+                if cur.fetchone():
+                    flash('Username or email already taken.', 'error')
+                    return render_template('register.html', username=username, email=email)
+                
+                # Hash password and insert
+                pw_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                cur.execute(
+                    "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id",
+                    (username, email, pw_hash)
+                )
+                new_user = cur.fetchone()
+            conn.commit()
+            
+            # Auto-login after registration
+            user = User({'id': new_user['id'], 'username': username, 'email': email})
+            login_user(user)
+            flash(f'Welcome aboard, {username}!', 'success')
+            return redirect(url_for('dashboard'))
+        except Exception as e:
+            conn.rollback()
+            flash(f'Registration error: {str(e)}', 'error')
+        finally:
+            put_db_connection(conn)
+    
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        identifier = request.form.get('identifier', '').strip()
+        password = request.form.get('password', '')
+        
+        if not identifier or not password:
+            flash('Please fill in all fields.', 'error')
+            return render_template('login.html', identifier=identifier)
+        
+        conn = get_db_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    "SELECT * FROM users WHERE username = %s OR email = %s",
+                    (identifier, identifier.lower())
+                )
+                row = cur.fetchone()
+        finally:
+            put_db_connection(conn)
+        
+        if row and bcrypt.checkpw(password.encode('utf-8'), row['password_hash'].encode('utf-8')):
+            user = User(row)
+            login_user(user, remember=True)
+            flash(f'Welcome back, {user.username}!', 'success')
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('dashboard'))
+        else:
+            flash('Invalid username/email or password.', 'error')
+            return render_template('login.html', identifier=identifier)
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been signed out.', 'success')
+    return redirect(url_for('login'))
+
 # ================== DASHBOARD ROUTES ==================
 
 @app.route('/')
@@ -27,19 +162,24 @@ def index():
     return redirect(url_for('dashboard'))
 
 @app.route('/dashboard')
+@login_required
 def dashboard():
     """Display all portfolios and create portfolio form"""
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT * FROM portfolios ORDER BY id")
+            cur.execute("SELECT * FROM portfolios WHERE user_id = %s ORDER BY id", (current_user.id,))
             portfolios = cur.fetchall()
             
             for portfolio in portfolios:
                 cur.execute("SELECT * FROM holdings WHERE portfolio_id = %s", (portfolio['id'],))
                 portfolio['holdings'] = cur.fetchall()
             
-            cur.execute("SELECT COUNT(*) as count FROM holdings")
+            cur.execute("""
+                SELECT COUNT(*) as count FROM holdings h
+                JOIN portfolios p ON h.portfolio_id = p.id
+                WHERE p.user_id = %s
+            """, (current_user.id,))
             row = cur.fetchone()
             total_holdings = row['count'] if row else 0
     finally:
@@ -52,6 +192,7 @@ def dashboard():
 # ================== PORTFOLIO ROUTES ==================
 
 @app.route('/portfolio/create', methods=['POST'])
+@login_required
 def create_portfolio():
     """Create a new portfolio"""
     name = request.form.get('name', '').strip()
@@ -64,7 +205,7 @@ def create_portfolio():
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("INSERT INTO portfolios (name, description) VALUES (%s, %s)", (name, description))
+            cur.execute("INSERT INTO portfolios (name, description, user_id) VALUES (%s, %s, %s)", (name, description, current_user.id))
         conn.commit()
         
         flash(f'Portfolio "{name}" created successfully!', 'success')
@@ -77,12 +218,13 @@ def create_portfolio():
     return redirect(url_for('dashboard'))
 
 @app.route('/portfolio/<int:portfolio_id>')
+@login_required
 def view_portfolio(portfolio_id):
     """View portfolio details and holdings"""
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT * FROM portfolios WHERE id = %s", (portfolio_id,))
+            cur.execute("SELECT * FROM portfolios WHERE id = %s AND user_id = %s", (portfolio_id, current_user.id))
             portfolio = cur.fetchone()
             
             if not portfolio:
@@ -111,12 +253,13 @@ def view_portfolio(portfolio_id):
                          recent_alerts=recent_alerts)
 
 @app.route('/portfolio/<int:portfolio_id>/delete', methods=['POST'])
+@login_required
 def delete_portfolio(portfolio_id):
     """Delete a portfolio and all associated holdings and alerts"""
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT name FROM portfolios WHERE id = %s", (portfolio_id,))
+            cur.execute("SELECT name FROM portfolios WHERE id = %s AND user_id = %s", (portfolio_id, current_user.id))
             portfolio = cur.fetchone()
             
             if not portfolio:
@@ -140,12 +283,13 @@ def delete_portfolio(portfolio_id):
     return redirect(url_for('dashboard'))
 
 @app.route('/portfolio/<int:portfolio_id>/edit')
+@login_required
 def edit_portfolio(portfolio_id):
     """Edit portfolio form (placeholder)"""
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT id FROM portfolios WHERE id = %s", (portfolio_id,))
+            cur.execute("SELECT id FROM portfolios WHERE id = %s AND user_id = %s", (portfolio_id, current_user.id))
             if not cur.fetchone():
                 flash('Portfolio not found', 'error')
                 return redirect(url_for('dashboard'))
@@ -158,6 +302,7 @@ def edit_portfolio(portfolio_id):
 # ================== HOLDINGS ROUTES ==================
 
 @app.route('/portfolio/<int:portfolio_id>/holding/create', methods=['POST'])
+@login_required
 def create_holding(portfolio_id):
     """Add a holding to a portfolio"""
     ticker = request.form.get('ticker', '').strip().upper()
@@ -178,7 +323,7 @@ def create_holding(portfolio_id):
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT id FROM portfolios WHERE id = %s", (portfolio_id,))
+            cur.execute("SELECT id FROM portfolios WHERE id = %s AND user_id = %s", (portfolio_id, current_user.id))
             if not cur.fetchone():
                 flash('Portfolio not found', 'error')
                 return redirect(url_for('dashboard'))
@@ -197,13 +342,19 @@ def create_holding(portfolio_id):
     return redirect(url_for('view_portfolio', portfolio_id=portfolio_id))
 
 @app.route('/holding/<int:holding_id>/delete', methods=['POST'])
+@login_required
 def delete_holding(holding_id):
     """Delete a holding from a portfolio"""
     conn = get_db_connection()
     portfolio_id = None
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT portfolio_id, ticker FROM holdings WHERE id = %s", (holding_id,))
+            # Verify the holding belongs to the current user's portfolio
+            cur.execute("""
+                SELECT h.portfolio_id, h.ticker FROM holdings h
+                JOIN portfolios p ON h.portfolio_id = p.id
+                WHERE h.id = %s AND p.user_id = %s
+            """, (holding_id, current_user.id))
             holding = cur.fetchone()
             
             if not holding:
@@ -228,13 +379,18 @@ def delete_holding(holding_id):
     return redirect(url_for('dashboard'))
 
 @app.route('/holding/<int:holding_id>/edit')
+@login_required
 def edit_holding(holding_id):
     """Edit holding form (placeholder)"""
     conn = get_db_connection()
     portfolio_id = None
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT portfolio_id FROM holdings WHERE id = %s", (holding_id,))
+            cur.execute("""
+                SELECT h.portfolio_id FROM holdings h
+                JOIN portfolios p ON h.portfolio_id = p.id
+                WHERE h.id = %s AND p.user_id = %s
+            """, (holding_id, current_user.id))
             holding = cur.fetchone()
             
             if not holding:
@@ -253,6 +409,7 @@ def edit_holding(holding_id):
 # ================== ALERTS ROUTES ==================
 
 @app.route('/alerts')
+@login_required
 def alerts():
     """Display alerts with filtering options"""
     portfolio_id = request.args.get('portfolio_id', type=int)
@@ -262,17 +419,21 @@ def alerts():
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            query = "SELECT * FROM alerts WHERE 1=1"
-            params = []
+            query = """
+                SELECT a.* FROM alerts a
+                JOIN portfolios p ON a.portfolio_id = p.id
+                WHERE p.user_id = %s
+            """
+            params = [current_user.id]
             
             if portfolio_id:
-                query += " AND portfolio_id = %s"
+                query += " AND a.portfolio_id = %s"
                 params.append(portfolio_id)
             
             if date_from:
                 try:
                     date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
-                    query += " AND created_at >= %s"
+                    query += " AND a.created_at >= %s"
                     params.append(date_from_obj)
                 except ValueError:
                     pass
@@ -280,12 +441,12 @@ def alerts():
             if date_to:
                 try:
                     date_to_obj = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
-                    query += " AND created_at < %s"
+                    query += " AND a.created_at < %s"
                     params.append(date_to_obj)
                 except ValueError:
                     pass
             
-            query += " ORDER BY created_at DESC LIMIT 50"
+            query += " ORDER BY a.created_at DESC LIMIT 50"
             
             cur.execute(query, tuple(params))
             alerts_list = cur.fetchall()
@@ -299,7 +460,7 @@ def alerts():
                 else:
                     alert['portfolio_name'] = 'Unknown'
             
-            cur.execute("SELECT * FROM portfolios")
+            cur.execute("SELECT * FROM portfolios WHERE user_id = %s", (current_user.id,))
             all_portfolios = cur.fetchall()
             
     finally:
@@ -313,12 +474,18 @@ def alerts():
                          date_to=date_to)
 
 @app.route('/alert/<int:alert_id>/dismiss', methods=['POST'])
+@login_required
 def dismiss_alert(alert_id):
     """Dismiss an alert (soft delete by marking as read)"""
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT id FROM alerts WHERE id = %s", (alert_id,))
+            # Verify ownership
+            cur.execute("""
+                SELECT a.id FROM alerts a
+                JOIN portfolios p ON a.portfolio_id = p.id
+                WHERE a.id = %s AND p.user_id = %s
+            """, (alert_id, current_user.id))
             if cur.fetchone():
                 cur.execute("DELETE FROM alerts WHERE id = %s", (alert_id,))
                 conn.commit()
@@ -336,13 +503,14 @@ def dismiss_alert(alert_id):
 # ================== ANALYTICS ROUTES ==================
 
 @app.route('/analytics')
+@login_required
 def analytics():
     """Display analytics and performance charts"""
     conn = get_db_connection()
     portfolio_stats = []
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT id, name FROM portfolios")
+            cur.execute("SELECT id, name FROM portfolios WHERE user_id = %s", (current_user.id,))
             portfolios = cur.fetchall()
             
             for portfolio in portfolios:
@@ -358,10 +526,12 @@ def analytics():
     return render_template('analytics.html', portfolio_stats=portfolio_stats)
 
 @app.route('/settings')
+@login_required
 def settings():
     return render_template('settings.html')
 
 @app.route('/support')
+@login_required
 def support():
     return render_template('support.html')
 
