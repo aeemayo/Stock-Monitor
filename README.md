@@ -1,15 +1,21 @@
-# Stock Monitor - AI-Driven Stock Sentiment Analysis & Forecasting
+# Stock Sentinel — AI-Driven Stock Sentiment Analysis & Forecasting
 
-A Flask-based web application that monitors stock portfolios, scrapes sentiment from social media, forecasts price movements, and delivers AI-synthesized alerts.
+A multi-tenant Flask web application with user authentication that monitors stock portfolios, analyzes Farcaster sentiment via the Neynar API, forecasts price movements with Prophet, and delivers AI-synthesized alerts through a premium dark-mode dashboard.
 
 ## How It Works
 
-### 1. **Portfolio Management**
+### 1. **User Authentication**
+- Register and sign in with username/email and password
+- Passwords are hashed with bcrypt (never stored in plaintext)
+- Session-based authentication via Flask-Login
+- All data is scoped per-user — full multi-tenant isolation
+
+### 2. **Portfolio Management**
 - Create multiple stock portfolios via the web dashboard
 - Add stock holdings (ticker symbols and share counts) to each portfolio
-- View all holdings and portfolio details in a user-friendly interface
+- View, edit, and delete portfolios and holdings through the UI
 
-### 2. **Automated Analysis Workflow** (runs on a schedule)
+### 3. **Automated Analysis Workflow** (runs on a schedule)
 The app runs a background job that automatically:
 
 - **Price Fetching**: Downloads 14 days of historical stock data using `yfinance`
@@ -17,145 +23,101 @@ The app runs a background job that automatically:
 - **Forecasting**: Uses `Prophet` time-series forecasting to predict next 3 days of price movements
 - **AI Synthesis**: Multi-agent system processes all data and generates a comprehensive analysis report
 
-### 3. **Alert Generation & Delivery**
+### 4. **Alert Generation & Delivery**
 - AI agents synthesize all data into actionable insights
 - Alerts are stored in the database with timestamps
+- Filter alerts by portfolio, date range
+- Dismiss individual alerts
 
-### 4. **Web Dashboard**
-- **Dashboard Page**: View all portfolios and quick statistics
-- **Portfolio View**: See holdings, share counts, and recent alerts
-- **Alerts History**: Track all generated alerts with analysis reports
+### 5. **Web Dashboard**
+- Premium dark-mode UI built with Tailwind CSS and glassmorphism design
+- **Portfolios Page**: View all portfolios, statistics, and quick-create widget
+- **Portfolio Detail**: See holdings table, add new tickers, manage positions
+- **Alerts History**: Filterable alert table with portfolio and date filters
+- **Analytics**: Portfolio distribution charts, holdings by sector, and price forecast visualizations
+- **Settings**: User profile and preferences
+- **Support**: FAQ and contact form
 
 ## Technology Stack
 
 | Component | Technology |
 |-----------|-----------|
 | **Web Server** | Flask + Jinja2 templates |
+| **Authentication** | Flask-Login + bcrypt |
 | **Database** | PostgreSQL (psycopg2) |
+| **Frontend** | Tailwind CSS (CDN), Google Material Symbols |
 | **Scheduling** | APScheduler (background jobs) |
 | **Stock Data** | yfinance |
 | **Sentiment** | Farcaster casts (Neynar API) + VADER sentiment analysis |
 | **Forecasting** | Facebook Prophet |
 | **AI Analysis** | ROMA multi-agent framework |
-| **Notifications** | Email support |
 
 ## Getting Started
 
 1. Install dependencies: `pip install -r requirements.txt`
 2. Configure environment variables (database URL, etc.)
 3. Run the app: `python app.py`
-4. Access the dashboard at `http://localhost:5000`
+4. Register a new account at `http://localhost:5000/register`
 
 ## Architecture Overview
 
 ### Backend Stack
 - **Flask**: Web server and REST API endpoints
-- **PostgreSQL (psycopg2)**: Data persistence layer (portfolios, holdings, alerts)
+- **Flask-Login + bcrypt**: Session-based authentication with password hashing
+- **PostgreSQL (psycopg2)**: Data persistence layer (users, portfolios, holdings, alerts)
 - **APScheduler**: Scheduled background jobs that run the ROMA workflow at market close
 - **ROMA Agents**: Multi-agent AI framework for price analysis, sentiment analysis, forecasting, and synthesis
 - **yfinance**: Stock price data fetching
 - **Neynar API**: Farcaster sentiment search
 - **Prophet**: Time-series forecasting
-- **Email**: Alert notifications
 
 ---
 
-## Frontend Scope & Architecture
+## Frontend Architecture
 
-The **frontend** is a lightweight server-rendered web application built with **Flask** and **Jinja2 templates**. It provides users with a clean, simple interface to view portfolios and alerts.
+The **frontend** is a server-rendered web application built with **Flask**, **Jinja2 templates**, and **Tailwind CSS** (dark mode). It features a persistent sidebar, glassmorphism card design, and Google Material Symbols icons.
 
-### Core Frontend Pages
+### Core Pages
 
-#### 1. Dashboard Page (`/dashboard`)
-**Endpoint**: `GET /dashboard` (default route)
+| Route | Template | Description |
+|-------|----------|-------------|
+| `/register` | `register.html` | Account creation (standalone, no sidebar) |
+| `/login` | `login.html` | Sign in (standalone, no sidebar) |
+| `/dashboard` | `dashboard.html` | Portfolio list, stats, quick-create form |
+| `/portfolio/<id>` | `portfolio.html` | Holdings table, add holding widget, stats |
+| `/alerts` | `alerts.html` | Filterable alerts table with empty state |
+| `/analytics` | `analytics.html` | Charts: donut, bar, line, forecast |
+| `/settings` | `settings.html` | User profile, preferences, integrations |
+| `/support` | `support.html` | FAQ and contact form |
 
-**Functionality**:
-- Displays all user portfolios in a list
-- Shows portfolio name and ID
-- Link to navigate to alerts view
-- Starting point for monitoring
+All authenticated pages extend `base.html`, which contains the sidebar navigation and flash message area.
 
-**Current Template**: `templates/dashboard.html`
-
-**Data Flow**:
-```
-User visits /dashboard
-    ↓
-Flask route calls get_session()
-    ↓
-Query database: SELECT id, name FROM portfolios
-    ↓
-Render dashboard.html with portfolios list
-    ↓
-HTML displayed in browser
-```
-
-#### 2. Alerts Page (`/alerts`)
-**Endpoint**: `GET /alerts`
-
-**Functionality**:
-- Displays the most recent 50 alerts
-- Shows alert metadata:
-  - Alert timestamp (created_at)
-  - Associated portfolio ID
-  - Alert message (contains synthesis results from ROMA workflow)
-- Link to return to dashboard
-
-**Current Template**: `templates/alerts.html`
-
-**Data Flow**:
-```
-User visits /alerts
-    ↓
-Flask route calls get_session()
-    ↓
-Query database: SELECT id, portfolio_id, message, created_at FROM alerts 
-                ORDER BY created_at DESC LIMIT 50
-    ↓
-Render alerts.html with alerts list
-    ↓
-HTML displayed in browser
-```
 
 ---
 
-## Backend-to-Frontend Integration
+## Authentication Flow
 
-### How Data Flows from Backend to Frontend
+The app uses **Flask-Login** for session management and **bcrypt** for password hashing.
 
-#### 1. **User Navigation**
 ```
-Browser Request (GET /dashboard)
+User visits any protected route
     ↓
-Flask app.py routes request to dashboard() function
+Flask-Login checks session cookie
     ↓
-Function calls get_db_connection() from db.py
+If no session → redirect to /login
     ↓
-psycopg2 retrieves data from PostgreSQL
+User signs in (username/email + password)
     ↓
-Jinja2 template renders data as HTML
+bcrypt.checkpw() verifies password against stored hash
     ↓
-HTML response sent to browser
-```
-
-#### 2. **Data Source Chain**
-```
-ROMA Workflow (scheduler.py)
+login_user() creates session → redirect to /dashboard
     ↓
-Runs at configured market close time (e.g., 4:30 PM on weekdays)
-    ↓
-Agents analyze prices, sentiment, forecasts
-    ↓
-SynthesizerAgent generates alert message
-    ↓
-Alert saved to database: models.Alert
-    ↓
-Frontend displays on /alerts page
+All queries scoped by current_user.id (multi-tenant isolation)
 ```
 
-### Backend APIs (Currently Used by Frontend)
+### Backend APIs
 
-The frontend currently makes **server-side** requests (no JavaScript/AJAX). All data retrieval happens on the server before the HTML is rendered.
+The frontend makes **server-side** requests (no JavaScript/AJAX). All data retrieval happens on the server before the HTML is rendered.
 
 #### Connection Management
 - **`db.get_db_connection()`**: Returns a raw psycopg2 connection from the connection pool
@@ -165,8 +127,16 @@ The frontend currently makes **server-side** requests (no JavaScript/AJAX). All 
 #### Database Schema (PostgreSQL)
 We use raw SQL tables (no ORM). Data is returned as Python dictionaries.
 ```sql
+users
+  ├─ id (SERIAL, primary key)
+  ├─ username (VARCHAR, unique)
+  ├─ email (VARCHAR, unique)
+  ├─ password_hash (VARCHAR)  ← bcrypt hash
+  └─ created_at (TIMESTAMP)
+
 portfolios
   ├─ id (SERIAL, primary key)
+  ├─ user_id (Foreign Key → users.id)
   └─ name (VARCHAR)
 
 holdings
@@ -184,112 +154,75 @@ alerts
 
 ---
 
-## Current Frontend Limitations (Scaffold Phase)
+## Completed Features
 
-1. **No Portfolio Management UI**
-   - Users cannot create portfolios through the web interface
-   - Must use database tools or API calls to add portfolios
-   - No way to edit portfolio names
+- [x] User registration and login (Flask-Login + bcrypt)
+- [x] Multi-tenant data isolation (all queries scoped by user_id)
+- [x] Portfolio CRUD (create, view, delete)
+- [x] Holdings CRUD (add ticker/shares, view, delete)
+- [x] Alert filtering by portfolio and date range
+- [x] Alert dismissal
+- [x] Tailwind CSS dark-mode UI with glassmorphism design
+- [x] Responsive sidebar navigation with mobile header
+- [x] Analytics page with SVG charts
+- [x] Settings and Support pages
+- [x] Farcaster sentiment analysis via Neynar API
+- [x] Prophet time-series forecasting
+- [x] PostgreSQL with connection pooling (psycopg2)
 
-2. **No Holdings Management**
-   - Cannot add stocks to a portfolio from the frontend
-   - No UI to view holdings by portfolio
+## Remaining Enhancements
 
-3. **Read-Only Interface**
-   - All pages are display-only (GET requests only)
-   - No forms (POST/PUT/DELETE requests)
-
-4. **Basic Styling**
-   - Minimal CSS
-   - No responsive design framework
-   - Not mobile-friendly
-
-5. **No Real-Time Updates**
-   - Must manually refresh pages to see new alerts
-   - No WebSocket or polling for live updates
-
-6. **Limited Filtering & Search**
-   - Cannot filter alerts by portfolio
-   - Cannot search or sort alerts
-
----
-
-## Recommended Frontend Enhancements
-
-### Phase 1: Basic CRUD Operations
-- [ ] Add form to create new portfolios
-- [ ] Add form to add holdings to portfolios
-- [ ] Add ability to delete portfolios/holdings
-- [ ] Basic form validation on the frontend
-
-### Phase 2: Improved UX
-- [ ] Add CSS framework (Bootstrap/Tailwind)
-- [ ] Make layout responsive and mobile-friendly
-- [ ] Add navigation header with branding
-- [ ] Add breadcrumb navigation
-
-### Phase 3: Advanced Features
 - [ ] Real-time alerts using WebSockets
-- [ ] Alert filtering by portfolio, date range
-- [ ] Portfolio performance dashboard with metrics
-- [ ] Charts showing price history and forecasts
-- [ ] Alert dismissal/archiving
-- [ ] Dark mode toggle
-- [ ] User authentication (if multi-user)
-
-### Phase 4: Interactivity
-- [ ] Client-side form validation using JavaScript
-- [ ] Auto-refresh alerts every N seconds
-- [ ] Modal dialogs for confirmations
-- [ ] Loading spinners and error messages
-- [ ] Search functionality with autocomplete
+- [ ] Portfolio edit form (name/description)
+- [ ] Holding edit form (update shares)
+- [ ] Dynamic chart data (replace static SVG mockups with real data)
+- [ ] Password reset / email verification
+- [ ] Role-based access control
 
 ---
 
-### Technology Stack for Frontend Enhancements
-- **HTML/CSS/JavaScript**: Core frontend (already in use)
-- **Bootstrap or Tailwind CSS**: Responsive styling
-- **HTMX or Alpine.js**: Lightweight interactivity without build tools
-- **Chart.js or Plotly.js**: Data visualization
-- **Socket.io**: Real-time updates (optional)
-
----
-
-Quick start
+## Quick Start
 
 1. Create a Python environment and install dependencies:
 
 ```bash
 python -m venv .venv
-source .venv/Scripts/activate   # on Windows use: .venv\\Scripts\\activate
+source .venv/bin/activate   # on Windows use: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
 2. Start a PostgreSQL database using Docker:
 
 ```bash
-docker run --name stocks-postgres -e POSTGRES_USER=aeem -e POSTGRES_PASSWORD=bunymide -e POSTGRES_DB=stocks_db -p 5432:5432 -d postgres
+docker run --name stocks-postgres \
+  -e POSTGRES_USER=aeem \
+  -e POSTGRES_PASSWORD=bunymide \
+  -e POSTGRES_DB=stocks_db \
+  -p 5432:5432 -d postgres
 ```
 
-3. Copy the example env file and match the database credentials:
+3. Copy the example env file and configure:
 
 ```bash
 cp .env.example .env
-# Ensure DATABASE_URL=postgresql://aeem:bunymide@localhost:5432/stocks_db
-# Add your NEYNAR_API_KEY
+# Set DATABASE_URL=postgresql://aeem:bunymide@localhost:5432/stocks_db
+# Set NEYNAR_API_KEY=your_key_here
+# Set SECRET_KEY=a-strong-random-string
 ```
 
-4. Run the Flask app:
+4. Run the app:
 
 ```bash
-flask run --host=0.0.0.0 --port=5000
+python app.py
 ```
+
+5. Open `http://localhost:5000/register` to create your first account and start using the dashboard.
 
 The APScheduler job will run in-process and trigger the ROMA workflow near market close (configured in `.env`).
 
-Notes & next steps
-- This is a scaffold. You should add API keys and test scraping on your machine.
-- The sentiment scrapers use the Neynar API (requires NEYNAR_API_KEY in .env).
+## Notes
+- Set a strong `SECRET_KEY` in production — it secures session cookies.
+- The sentiment agents use the Neynar API (requires `NEYNAR_API_KEY` in `.env`).
 - The forecasting agent uses `prophet` by default; if installation is problematic you can swap to a lightweight sklearn regressor.
 
 Installing ROMA (optional)
