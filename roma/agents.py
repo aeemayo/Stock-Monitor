@@ -34,7 +34,7 @@ class SentimentAgent:
                 "accept": "application/json",
                 "api_key": api_key
             }
-            response = requests.get(url, params=params, headers=headers)
+            response = requests.get(url, params=params, headers=headers, timeout=10)
             response.raise_for_status()
             data = response.json()
             

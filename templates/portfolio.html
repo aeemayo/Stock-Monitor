@@ -57,6 +57,7 @@
                 <h3 class="font-headline-md text-headline-md text-lg">Add Holding</h3>
             </div>
             <form method="POST" action="/portfolio/{{ portfolio.id }}/holding/create" class="flex flex-col gap-md">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div>
                     <label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-xs">Stock Ticker</label>
                     <input name="ticker" required pattern="[a-zA-Z]{1,10}" class="w-full bg-surface-container-high border-b-2 border-outline-variant/30 text-on-surface font-body-sm text-body-sm px-sm py-sm focus:outline-none focus:border-secondary focus:bg-surface-container-highest transition-all rounded-t-DEFAULT input-glow uppercase" placeholder="e.g., AAPL" type="text"/>
@@ -116,6 +117,7 @@
                                         </a>
                                         <!-- Delete Action -->
                                         <form action="/holding/{{ holding.id }}/delete" method="POST" class="inline" onsubmit="return confirm('Remove {{ holding.ticker }} from this portfolio?');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                             <button type="submit" class="p-xs rounded text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors" title="Delete">
                                                 <span class="material-symbols-outlined text-sm">delete</span>
                                             </button>

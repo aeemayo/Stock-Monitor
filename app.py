@@ -1,6 +1,7 @@
 import os
+import secrets
 from datetime import datetime, timedelta
-from functools import wraps
+from urllib.parse import urlsplit
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from dotenv import load_dotenv
 from db import init_db, get_db_connection, put_db_connection
@@ -15,6 +16,7 @@ load_dotenv()
 app = Flask(__name__, template_folder='templates')
 app.config['DATABASE_URL'] = os.getenv('DATABASE_URL', 'postgresql://localhost/stocks')
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+_initialized = False
 
 # ================== FLASK-LOGIN SETUP ==================
 
@@ -47,10 +49,42 @@ def load_user(user_id):
 
 # Initialize on startup
 def initialize_app():
+    global _initialized
+    if _initialized:
+        return
     init_db(app.config['DATABASE_URL'])
     # Don't start scheduler on serverless
-    if os.getenv('ENVIRONMENT') != 'vercel':
+    if os.getenv('ENVIRONMENT') != 'vercel' and not os.getenv('VERCEL'):
         start_scheduler(app)
+    _initialized = True
+
+def csrf_token():
+    token = session.get('_csrf_token')
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session['_csrf_token'] = token
+    return token
+
+def is_safe_redirect(target):
+    if not target:
+        return False
+    ref = urlsplit(request.host_url)
+    test = urlsplit(target)
+    return not test.netloc or (test.scheme in ('http', 'https') and test.netloc == ref.netloc)
+
+@app.before_request
+def prepare_request():
+    initialize_app()
+    if request.method == 'POST' and request.endpoint != 'run_workflow_api':
+        expected = session.get('_csrf_token')
+        submitted = request.form.get('csrf_token', '')
+        if not expected or not secrets.compare_digest(expected, submitted):
+            flash('Your session expired. Please try again.', 'error')
+            return redirect(request.referrer if is_safe_redirect(request.referrer) else url_for('dashboard'))
+
+@app.context_processor
+def inject_security_helpers():
+    return {'csrf_token': csrf_token}
 
 # ================== AUTH ROUTES ==================
 
@@ -141,7 +175,7 @@ def login():
             login_user(user, remember=True)
             flash(f'Welcome back, {user.username}!', 'success')
             next_page = request.args.get('next')
-            return redirect(next_page or url_for('dashboard'))
+            return redirect(next_page if is_safe_redirect(next_page) else url_for('dashboard'))
         else:
             flash('Invalid username/email or password.', 'error')
             return render_template('login.html', identifier=identifier)
@@ -548,8 +582,13 @@ def internal_error(error):
 
 @app.route('/api/run-workflow', methods=['POST'])
 def run_workflow_api():
+    cron_secret = os.getenv('CRON_SECRET')
+    if not cron_secret:
+        return {"error": "CRON_SECRET is not configured"}, 503
+
     token = request.headers.get('Authorization')
-    if token != f"Bearer {os.getenv('CRON_SECRET')}":
+    expected = f"Bearer {cron_secret}"
+    if not token or not secrets.compare_digest(token, expected):
         return {"error": "Unauthorized"}, 401
     
     try:

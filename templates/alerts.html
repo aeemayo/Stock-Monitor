@@ -90,6 +90,7 @@
                             </td>
                             <td class="px-md py-sm text-right">
                                 <form action="/alert/{{ alert.id }}/dismiss" method="POST" class="inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                     <button type="submit" class="text-on-surface-variant hover:text-error transition-colors p-1 rounded" title="Dismiss">
                                         <span class="material-symbols-outlined text-sm">close</span>
                                     </button>

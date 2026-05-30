@@ -108,6 +108,7 @@
             <p class="font-body-sm text-on-surface-variant text-center mb-xl">Sign in to your account to continue</p>
 
             <form method="POST" action="{{ url_for('login') }}" class="flex flex-col gap-lg">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-caps text-label-caps text-on-surface-variant uppercase">Username or Email</label>
                     <input name="identifier" type="text" value="{{ identifier|default('') }}" required

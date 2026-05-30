@@ -108,6 +108,7 @@
             <p class="font-body-sm text-on-surface-variant text-center mb-xl">Start monitoring your portfolio in minutes</p>
 
             <form method="POST" action="{{ url_for('register') }}" class="flex flex-col gap-lg">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-caps text-label-caps text-on-surface-variant uppercase">Username</label>
                     <input name="username" type="text" value="{{ username|default('') }}" required minlength="3"

@@ -41,6 +41,7 @@
                 <h3 class="font-headline-md text-headline-md text-lg">Quick Create</h3>
             </div>
             <form method="POST" action="/portfolio/create" class="flex flex-col gap-md">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div>
                     <label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-xs">Portfolio Name</label>
                     <input name="name" required class="w-full bg-surface-container-high border-b-2 border-outline-variant/30 text-on-surface font-body-sm text-body-sm px-sm py-sm focus:outline-none focus:border-primary focus:bg-surface-container-highest transition-all rounded-t-DEFAULT input-glow" placeholder="e.g., Tech Stocks, My Watchlist" type="text"/>
@@ -88,6 +89,7 @@
                                 <span class="material-symbols-outlined">visibility</span>
                             </a>
                             <form action="/portfolio/{{ portfolio.id }}/delete" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete {{ portfolio.name }}?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <button type="submit" class="p-xs rounded-lg text-error hover:bg-error/10 transition-colors tooltip" title="Delete">
                                     <span class="material-symbols-outlined">delete</span>
                                 </button>
