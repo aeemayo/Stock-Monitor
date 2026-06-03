@@ -2,7 +2,7 @@ import os
 import requests
 
 APIFY_TOKEN = os.getenv("APIFY_TOKEN")
-APIFY_ACTOR_ID = os.getenv("APIFY_ACTOR_ID", "apify/yahoo-finance-scraper")
+APIFY_ACTOR_ID = os.getenv("APIFY_ACTOR_ID", "canadesk~yahoo-finance")
 TIMEOUT = 30
 
 
@@ -16,10 +16,10 @@ def fetch_prices(tickers: list[str]) -> dict[str, float | None]:
 
     url = (
         f"https://api.apify.com/v2/acts/{APIFY_ACTOR_ID}"
-        f"/run-sync-get-dataset-items"
+        f"https://api.apify.com/v2/acts/canadesk~yahoo-finance/run-sync-get-dataset-items"
         f"?token={APIFY_TOKEN}&timeout={TIMEOUT}&memory=128"
     )
-    payload = {"tickers": tickers, "type": "STOCKS"}
+    payload = {"tickers": tickers, "type": "STOCKS", "proxy": {"useApifyProxy": True}}
 
     try:
         response = requests.post(url, json=payload, timeout=TIMEOUT + 5)
