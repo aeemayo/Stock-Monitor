@@ -14,7 +14,11 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 load_dotenv()
 
 app = Flask(__name__, template_folder='templates')
-app.config['DATABASE_URL'] = os.getenv('DATABASE_URL', 'postgresql://localhost/stocks')
+app.config['DATABASE_URL'] = (
+    os.getenv('NEON_DATABASE_URL')
+    or os.getenv('DATABASE_URL')
+    or 'postgresql://localhost/stocks'
+)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 _initialized = False
 

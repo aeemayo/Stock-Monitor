@@ -1,17 +1,40 @@
 import psycopg2
 from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
-import urllib.parse
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 _pool = None
 
-def init_db(database_url: str):
-    global _pool
-    # Parse the URL to support both postgres:// and postgresql://
+def normalize_database_url(database_url: str) -> str:
+    if not database_url:
+        raise ValueError("DATABASE_URL is required")
+
+    # Neon and Heroku-style URLs can use postgres://, while psycopg2 expects
+    # postgresql:// for URL parsing.
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
-        
-    _pool = pool.ThreadedConnectionPool(1, 20, database_url)
+
+    parsed = urlsplit(database_url)
+    if not parsed.scheme or not parsed.netloc:
+        raise ValueError("DATABASE_URL must be a full Postgres connection string")
+
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    hostname = (parsed.hostname or '').lower()
+
+    # Neon connection strings are SSL-only. The Neon dashboard normally includes
+    # sslmode=require; add it if someone pasted a shortened URL.
+    if hostname.endswith('.neon.tech') and 'sslmode' not in query and 'sslrootcert' not in query:
+        query['sslmode'] = 'require'
+
+    return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment))
+
+def init_db(database_url: str):
+    global _pool
+    database_url = normalize_database_url(database_url)
+
+    min_connections = 1
+    max_connections = 5 if '-pooler.' in database_url else 10
+    _pool = pool.ThreadedConnectionPool(min_connections, max_connections, database_url)
     
     # Initialize schema
     conn = get_db_connection()
