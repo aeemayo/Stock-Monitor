@@ -39,7 +39,7 @@ def run_root_workflow(portfolio_id=None):
 
             for h in holdings:
                 ticker = h['ticker']
-                price_df = price_agent.fetch(ticker, period='14d')
+                price_df = price_agent.fetch(ticker, period='180d')
                 sentiment = sent_agent.scrape(ticker)  # searches for the ticker symbol/term
                 forecast = forecast_agent.forecast(price_df, periods=3)
                 report = synth.synthesize(ticker, price_df, sentiment, forecast)
