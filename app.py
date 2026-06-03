@@ -10,7 +10,6 @@ from scheduler import start_scheduler
 from roma.workflow import run_root_workflow
 import bcrypt
 import yfinance as yf
-from apify_client import fetch_price
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
 load_dotenv()
@@ -316,8 +315,9 @@ def delete_portfolio(portfolio_id):
             
             portfolio_name = portfolio['name']
             
-            cur.execute("DELETE FROM holdings WHERE portfolio_id = %s", (portfolio_id,))
+            cur.execute("DELETE FROM holding_snapshots WHERE portfolio_id = %s", (portfolio_id,))
             cur.execute("DELETE FROM alerts WHERE portfolio_id = %s", (portfolio_id,))
+            cur.execute("DELETE FROM holdings WHERE portfolio_id = %s", (portfolio_id,))
             cur.execute("DELETE FROM portfolios WHERE id = %s", (portfolio_id,))
             
         conn.commit()
@@ -373,7 +373,7 @@ def create_holding(portfolio_id):
         snapshot_price = yf.Ticker(ticker).fast_info.get('lastPrice')
         if not snapshot_price:
             snapshot_price = float(
-                yf.download(ticker, period='1d', progress=False)['Close'].iloc[-1]
+                yf.download(ticker, period='1d', progress=False, multi_level_index=False)['Close'].iloc[-1]
             )
     except Exception:
         snapshot_price = None
@@ -454,18 +454,17 @@ def create_holding(portfolio_id):
             
         conn.commit()
 
-        price = fetch_price(ticker)
-        if price is not None and holding_id is not None:
+        if snapshot_price is not None and holding_id is not None:
             with conn.cursor() as cur:
                 cur.execute(
                     """UPDATE holdings
                        SET last_price = %s, last_price_updated_at = CURRENT_TIMESTAMP
                        WHERE id = %s""",
-                    (price, holding_id)
+                    (snapshot_price, holding_id)
                 )
             conn.commit()
 
-        price_str = f" @ ${price:.2f}" if price is not None else ""
+        price_str = f" @ ${snapshot_price:.2f}" if snapshot_price is not None else ""
         flash(f'Added {shares} shares of {ticker}{price_str} to portfolio', 'success')
     except Exception as e:
         conn.rollback()
@@ -478,8 +477,6 @@ def create_holding(portfolio_id):
 @app.route('/portfolio/<int:portfolio_id>/refresh-prices', methods=['POST'])
 @login_required
 def refresh_prices(portfolio_id):
-    from apify_client import fetch_prices
-
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -503,8 +500,19 @@ def refresh_prices(portfolio_id):
         flash('No holdings to refresh', 'error')
         return redirect(url_for('view_portfolio', portfolio_id=portfolio_id))
 
-    tickers = [row['ticker'] for row in rows]
-    price_map = fetch_prices(tickers)
+    price_map = {}
+    for row in rows:
+        t = row['ticker']
+        try:
+            yf_price = yf.Ticker(t).fast_info.get('lastPrice')
+            if not yf_price:
+                yf_price = float(
+                    yf.download(t, period='1d', progress=False, multi_level_index=False)['Close'].iloc[-1]
+                )
+            if yf_price:
+                price_map[t] = float(yf_price)
+        except Exception:
+            pass
 
     conn = get_db_connection()
     try:
