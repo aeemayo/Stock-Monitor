@@ -9,6 +9,7 @@ from psycopg2.extras import RealDictCursor
 from scheduler import start_scheduler
 from roma.workflow import run_root_workflow
 import bcrypt
+import yfinance as yf
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
 load_dotenv()
@@ -271,6 +272,14 @@ def view_portfolio(portfolio_id):
             
             cur.execute("SELECT * FROM holdings WHERE portfolio_id = %s", (portfolio_id,))
             holdings = cur.fetchall()
+
+            for holding in holdings:
+                cur.execute("""
+                    SELECT * FROM holding_snapshots
+                    WHERE holding_id = %s
+                    ORDER BY created_at ASC
+                """, (holding['id'],))
+                holding['history'] = cur.fetchall()
             
             total_shares = sum(h['shares'] for h in holdings)
             unique_tickers = len(set(h['ticker'] for h in holdings))
@@ -357,6 +366,16 @@ def create_holding(portfolio_id):
     except ValueError as e:
         flash(f'Invalid shares value: {str(e)}', 'error')
         return redirect(url_for('view_portfolio', portfolio_id=portfolio_id))
+
+    price = None
+    try:
+        price = yf.Ticker(ticker).fast_info.get('lastPrice')
+        if not price:
+            price = float(
+                yf.download(ticker, period='1d', progress=False)['Close'].iloc[-1]
+            )
+    except Exception:
+        price = None
     
     conn = get_db_connection()
     try:
@@ -365,9 +384,70 @@ def create_holding(portfolio_id):
             if not cur.fetchone():
                 flash('Portfolio not found', 'error')
                 return redirect(url_for('dashboard'))
-            
-            cur.execute("INSERT INTO holdings (portfolio_id, ticker, shares) VALUES (%s, %s, %s)", 
-                        (portfolio_id, ticker, shares))
+
+            shares_delta = shares
+            cur.execute("""
+                SELECT id, shares FROM holdings
+                WHERE portfolio_id = %s AND ticker = %s
+            """, (portfolio_id, ticker))
+            existing_row = cur.fetchone()
+
+            if existing_row:
+                shares_prev = existing_row['shares']
+                shares_total = shares_prev + shares_delta
+
+                cur.execute("""
+                    UPDATE holdings
+                    SET shares = %s, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (shares_total, existing_row['id']))
+
+                value_before = shares_prev * price if price is not None else None
+                value_after = shares_total * price if price is not None else None
+
+                cur.execute("""
+                    INSERT INTO holding_snapshots
+                        (holding_id, portfolio_id, ticker, event,
+                         shares_delta, shares_total, price_at_event, value_before, value_after)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    existing_row['id'],
+                    portfolio_id,
+                    ticker,
+                    'add',
+                    shares_delta,
+                    shares_total,
+                    price,
+                    value_before,
+                    value_after,
+                ))
+            else:
+                cur.execute("""
+                    INSERT INTO holdings (portfolio_id, ticker, shares)
+                    VALUES (%s, %s, %s) RETURNING id
+                """, (portfolio_id, ticker, shares_delta))
+                new_holding = cur.fetchone()
+                holding_id = new_holding['id']
+
+                value_before = 0.0
+                value_after = shares_delta * price if price is not None else None
+
+                cur.execute("""
+                    INSERT INTO holding_snapshots
+                        (holding_id, portfolio_id, ticker, event,
+                         shares_delta, shares_total, price_at_event, value_before, value_after)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    holding_id,
+                    portfolio_id,
+                    ticker,
+                    'initial',
+                    shares_delta,
+                    shares_delta,
+                    price,
+                    value_before,
+                    value_after,
+                ))
             
         conn.commit()
         flash(f'Added {shares} shares of {ticker} to portfolio', 'success')

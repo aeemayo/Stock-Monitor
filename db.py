@@ -79,6 +79,21 @@ def init_db(database_url: str):
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS holding_snapshots (
+                    id SERIAL PRIMARY KEY,
+                    holding_id INTEGER REFERENCES holdings(id) ON DELETE CASCADE,
+                    portfolio_id INTEGER REFERENCES portfolios(id) ON DELETE CASCADE,
+                    ticker VARCHAR(50) NOT NULL,
+                    event VARCHAR(20) NOT NULL,
+                    shares_delta FLOAT NOT NULL,
+                    shares_total FLOAT NOT NULL,
+                    price_at_event FLOAT,
+                    value_before FLOAT,
+                    value_after FLOAT,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
             # Add user_id column to portfolios if it doesn't exist (migration)
             cur.execute("""
                 DO $$

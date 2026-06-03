@@ -125,6 +125,79 @@
                                     </div>
                                 </td>
                             </tr>
+                            {% if holding.history %}
+                                <tr class="bg-surface-container-low/40">
+                                    <td colspan="4" class="px-md py-sm">
+                                        <details class="group">
+                                            <summary class="cursor-pointer text-on-surface-variant font-body-sm text-body-sm hover:text-on-surface transition-colors">
+                                                History ({{ holding.history|length }})
+                                            </summary>
+                                            <div class="mt-sm overflow-x-auto">
+                                                <table class="w-full text-left border-collapse text-body-sm">
+                                                    <thead>
+                                                        <tr class="border-b border-outline-variant/30 text-on-surface-variant">
+                                                            <th class="px-sm py-xs font-label-caps text-label-caps">Date</th>
+                                                            <th class="px-sm py-xs font-label-caps text-label-caps">Event</th>
+                                                            <th class="px-sm py-xs font-label-caps text-label-caps">Shares Added</th>
+                                                            <th class="px-sm py-xs font-label-caps text-label-caps">Total Shares</th>
+                                                            <th class="px-sm py-xs font-label-caps text-label-caps">Price @ Event</th>
+                                                            <th class="px-sm py-xs font-label-caps text-label-caps">Value Before</th>
+                                                            <th class="px-sm py-xs font-label-caps text-label-caps">Value After</th>
+                                                            <th class="px-sm py-xs font-label-caps text-label-caps">Change</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody class="divide-y divide-outline-variant/20">
+                                                        {% for snap in holding.history %}
+                                                            <tr>
+                                                                <td class="px-sm py-xs font-data-mono text-on-surface-variant">
+                                                                    {{ snap.created_at.strftime('%Y-%m-%d %H:%M') if snap.created_at else '&mdash;'|safe }}
+                                                                </td>
+                                                                <td class="px-sm py-xs text-on-surface">{{ snap.event }}</td>
+                                                                <td class="px-sm py-xs font-data-mono text-on-surface">{{ snap.shares_delta }}</td>
+                                                                <td class="px-sm py-xs font-data-mono text-on-surface">{{ snap.shares_total }}</td>
+                                                                <td class="px-sm py-xs font-data-mono text-on-surface">
+                                                                    {% if snap.price_at_event is not none %}
+                                                                        {{ '%.2f' % snap.price_at_event }}
+                                                                    {% else %}
+                                                                        &mdash;
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td class="px-sm py-xs font-data-mono text-on-surface">
+                                                                    {% if snap.value_before is not none %}
+                                                                        {{ '%.2f' % snap.value_before }}
+                                                                    {% else %}
+                                                                        &mdash;
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td class="px-sm py-xs font-data-mono text-on-surface">
+                                                                    {% if snap.value_after is not none %}
+                                                                        {{ '%.2f' % snap.value_after }}
+                                                                    {% else %}
+                                                                        &mdash;
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td class="px-sm py-xs font-data-mono">
+                                                                    {% if snap.value_before is not none and snap.value_after is not none %}
+                                                                        {% if snap.value_after > snap.value_before %}
+                                                                            <span class="text-emerald-400">&#9650;</span>
+                                                                        {% elif snap.value_after < snap.value_before %}
+                                                                            <span class="text-rose-400">&#9660;</span>
+                                                                        {% else %}
+                                                                            <span class="text-on-surface-variant">&mdash;</span>
+                                                                        {% endif %}
+                                                                    {% else %}
+                                                                        <span class="text-on-surface-variant">&mdash;</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </details>
+                                    </td>
+                                </tr>
+                            {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>
