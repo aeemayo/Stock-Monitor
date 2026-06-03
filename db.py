@@ -106,6 +106,19 @@ def init_db(database_url: str):
                     END IF;
                 END $$;
             """)
+            cur.execute("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'holdings' AND column_name = 'last_price'
+                    ) THEN
+                        ALTER TABLE holdings
+                            ADD COLUMN last_price FLOAT,
+                            ADD COLUMN last_price_updated_at TIMESTAMP WITH TIME ZONE;
+                    END IF;
+                END $$;
+            """)
         conn.commit()
     finally:
         put_db_connection(conn)

@@ -10,6 +10,7 @@ from scheduler import start_scheduler
 from roma.workflow import run_root_workflow
 import bcrypt
 import yfinance as yf
+from apify_client import fetch_price
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
 load_dotenv()
@@ -367,17 +368,18 @@ def create_holding(portfolio_id):
         flash(f'Invalid shares value: {str(e)}', 'error')
         return redirect(url_for('view_portfolio', portfolio_id=portfolio_id))
 
-    price = None
+    snapshot_price = None
     try:
-        price = yf.Ticker(ticker).fast_info.get('lastPrice')
-        if not price:
-            price = float(
+        snapshot_price = yf.Ticker(ticker).fast_info.get('lastPrice')
+        if not snapshot_price:
+            snapshot_price = float(
                 yf.download(ticker, period='1d', progress=False)['Close'].iloc[-1]
             )
     except Exception:
-        price = None
+        snapshot_price = None
     
     conn = get_db_connection()
+    holding_id = None
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("SELECT id FROM portfolios WHERE id = %s AND user_id = %s", (portfolio_id, current_user.id))
@@ -402,8 +404,8 @@ def create_holding(portfolio_id):
                     WHERE id = %s
                 """, (shares_total, existing_row['id']))
 
-                value_before = shares_prev * price if price is not None else None
-                value_after = shares_total * price if price is not None else None
+                value_before = shares_prev * snapshot_price if snapshot_price is not None else None
+                value_after = shares_total * snapshot_price if snapshot_price is not None else None
 
                 cur.execute("""
                     INSERT INTO holding_snapshots
@@ -417,10 +419,11 @@ def create_holding(portfolio_id):
                     'add',
                     shares_delta,
                     shares_total,
-                    price,
+                    snapshot_price,
                     value_before,
                     value_after,
                 ))
+                holding_id = existing_row['id']
             else:
                 cur.execute("""
                     INSERT INTO holdings (portfolio_id, ticker, shares)
@@ -430,7 +433,7 @@ def create_holding(portfolio_id):
                 holding_id = new_holding['id']
 
                 value_before = 0.0
-                value_after = shares_delta * price if price is not None else None
+                value_after = shares_delta * snapshot_price if snapshot_price is not None else None
 
                 cur.execute("""
                     INSERT INTO holding_snapshots
@@ -444,19 +447,85 @@ def create_holding(portfolio_id):
                     'initial',
                     shares_delta,
                     shares_delta,
-                    price,
+                    snapshot_price,
                     value_before,
                     value_after,
                 ))
             
         conn.commit()
-        flash(f'Added {shares} shares of {ticker} to portfolio', 'success')
+
+        price = fetch_price(ticker)
+        if price is not None and holding_id is not None:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """UPDATE holdings
+                       SET last_price = %s, last_price_updated_at = CURRENT_TIMESTAMP
+                       WHERE id = %s""",
+                    (price, holding_id)
+                )
+            conn.commit()
+
+        price_str = f" @ ${price:.2f}" if price is not None else ""
+        flash(f'Added {shares} shares of {ticker}{price_str} to portfolio', 'success')
     except Exception as e:
         conn.rollback()
         flash(f'Error adding holding: {str(e)}', 'error')
     finally:
         put_db_connection(conn)
     
+    return redirect(url_for('view_portfolio', portfolio_id=portfolio_id))
+
+@app.route('/portfolio/<int:portfolio_id>/refresh-prices', methods=['POST'])
+@login_required
+def refresh_prices(portfolio_id):
+    from apify_client import fetch_prices
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "SELECT id FROM portfolios WHERE id = %s AND user_id = %s",
+                (portfolio_id, current_user.id)
+            )
+            if not cur.fetchone():
+                flash('Portfolio not found', 'error')
+                return redirect(url_for('dashboard'))
+
+            cur.execute(
+                "SELECT id, ticker FROM holdings WHERE portfolio_id = %s",
+                (portfolio_id,)
+            )
+            rows = cur.fetchall()
+    finally:
+        put_db_connection(conn)
+
+    if not rows:
+        flash('No holdings to refresh', 'error')
+        return redirect(url_for('view_portfolio', portfolio_id=portfolio_id))
+
+    tickers = [row['ticker'] for row in rows]
+    price_map = fetch_prices(tickers)
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            for row in rows:
+                price = price_map.get(row['ticker'])
+                if price is not None:
+                    cur.execute(
+                        """UPDATE holdings
+                           SET last_price = %s, last_price_updated_at = CURRENT_TIMESTAMP
+                           WHERE id = %s""",
+                        (price, row['id'])
+                    )
+        conn.commit()
+        flash('Prices refreshed successfully', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error refreshing prices: {str(e)}', 'error')
+    finally:
+        put_db_connection(conn)
+
     return redirect(url_for('view_portfolio', portfolio_id=portfolio_id))
 
 @app.route('/holding/<int:holding_id>/delete', methods=['POST'])
