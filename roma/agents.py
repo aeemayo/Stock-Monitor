@@ -4,7 +4,12 @@ import pandas as pd
 import requests
 import os
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-from prophet import Prophet
+
+try:
+    from prophet import Prophet
+    PROPHET_AVAILABLE = True
+except ImportError:
+    PROPHET_AVAILABLE = False
 
 analyzer = SentimentIntensityAnalyzer()
 
@@ -51,6 +56,8 @@ class SentimentAgent:
 class ForecastAgent:
     """Produce a short-term forecast using Prophet."""
     def forecast(self, df, periods=3):
+        if not PROPHET_AVAILABLE:
+            return None
         if df is None or df.empty:
             return None
         m = Prophet()
