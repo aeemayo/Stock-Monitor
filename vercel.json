@@ -16,5 +16,9 @@
   ],
   "env": {
     "PYTHONUNBUFFERED": "1"
-  }
+  },
+  "crons": [{
+  "path": "/api/run-workflow",
+  "schedule": "30 20 * * 1-5"
+}]
 }
