@@ -106,9 +106,7 @@
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .glow-active {
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
-        }
+        .glow-active { box-shadow: 0 0 20px rgba(59, 130, 246, 0.15); }
         .input-glow:focus {
             box-shadow: 0 2px 10px rgba(59, 130, 246, 0.2);
             border-color: rgba(173, 198, 255, 0.5);
@@ -116,11 +114,32 @@
         .glass-stroke { border: 1px solid rgba(255, 255, 255, 0.04); }
         .chart-grid { stroke: rgba(255, 255, 255, 0.03); }
         .glow-primary:hover { box-shadow: 0 0 20px rgba(59, 130, 246, 0.15); }
+
+        /* Mobile drawer */
+        #mobileDrawer { transform: translateX(-100%); }
+        #mobileDrawer.open { transform: translateX(0); }
+        #drawerOverlay { opacity: 0; pointer-events: none; }
+        #drawerOverlay.open { opacity: 1; pointer-events: auto; }
+
+        /* Mobile-friendly text */
+        @media (max-width: 768px) {
+            .text-display-lg { font-size: 28px !important; line-height: 36px !important; }
+        }
+
+        /* Mobile card layouts */
+        .mobile-card { display: none; }
+        @media (max-width: 640px) {
+            .desktop-table { display: none !important; }
+            .mobile-card { display: block; }
+        }
+        @media (min-width: 641px) {
+            .mobile-card { display: none !important; }
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-background text-on-surface font-body-lg min-h-screen flex flex-col md:flex-row antialiased">
-    <!-- SideNavBar (Web) -->
+    <!-- SideNavBar (Desktop) -->
     <nav class="hidden lg:flex flex-col h-screen p-md gap-xs fixed left-0 top-0 w-64 bg-surface border-r border-outline-variant/20 z-40">
         <div class="mb-xl flex items-center gap-sm">
             <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">monitoring</span>
@@ -130,24 +149,20 @@
             </div>
         </div>
         <div class="flex-1 flex flex-col gap-xs">
-            <!-- Portfolios (Dashboard) -->
             <a href="{{ url_for('dashboard') }}" class="flex items-center gap-sm p-sm rounded-lg font-body-sm text-body-sm group {% if request.endpoint in ['dashboard', 'view_portfolio'] %}bg-primary-container text-on-primary-container font-bold translate-x-1 duration-200 glow-active{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors{% endif %}">
                 <span class="material-symbols-outlined {% if request.endpoint not in ['dashboard', 'view_portfolio'] %}group-hover:text-primary transition-colors{% endif %}" {% if request.endpoint in ['dashboard', 'view_portfolio'] %}style="font-variation-settings: 'FILL' 1;"{% endif %}>Horse</span>
                 Portfolios
             </a>
-            <!-- Alerts -->
             <a href="{{ url_for('alerts') }}" class="flex items-center gap-sm p-sm rounded-lg font-body-sm text-body-sm group {% if request.endpoint == 'alerts' %}bg-primary-container text-on-primary-container font-bold translate-x-1 duration-200 glow-active{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors{% endif %}">
                 <span class="material-symbols-outlined {% if request.endpoint != 'alerts' %}group-hover:text-primary transition-colors{% endif %}" {% if request.endpoint == 'alerts' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>notifications_active</span>
                 Alerts
             </a>
-            <!-- Analytics -->
             <a href="{{ url_for('analytics') }}" class="flex items-center gap-sm p-sm rounded-lg font-body-sm text-body-sm group {% if request.endpoint == 'analytics' %}bg-primary-container text-on-primary-container font-bold translate-x-1 duration-200 glow-active{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors{% endif %}">
                 <span class="material-symbols-outlined {% if request.endpoint != 'analytics' %}group-hover:text-primary transition-colors{% endif %}" {% if request.endpoint == 'analytics' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>query_stats</span>
                 Analytics
             </a>
         </div>
         <div class="mt-auto flex flex-col gap-xs border-t border-outline-variant/20 pt-md">
-            <!-- User Profile Chip -->
             <div class="flex items-center gap-sm p-sm mb-xs">
                 <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary/40 text-primary text-sm font-bold flex-shrink-0">
                     {{ current_user.username[0]|upper }}
@@ -172,25 +187,90 @@
         </div>
     </nav>
 
-    <!-- TopAppBar (Mobile/Tablet) -->
-    <header class="lg:hidden fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-mobile h-16 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/30 shadow-sm">
+    <!-- Mobile Top Bar -->
+    <header class="lg:hidden fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-mobile h-14 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/20">
         <div class="flex items-center gap-xs">
-            <span class="material-symbols-outlined text-primary text-2xl" data-weight="fill">monitoring</span>
-            <span class="font-headline-md text-headline-md text-on-surface tracking-tight font-bold">Stock Sentinel</span>
+            <span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">monitoring</span>
+            <span class="font-headline-md text-on-surface tracking-tight font-bold text-lg">Stock Sentinel</span>
         </div>
-        <div class="flex items-center gap-sm">
-            <button class="text-on-surface-variant hover:text-on-surface transition-colors relative">
-                <span class="material-symbols-outlined">notifications</span>
-            </button>
-            <button class="text-on-surface-variant hover:text-on-surface transition-colors">
-                <span class="material-symbols-outlined">menu</span>
-            </button>
-        </div>
+        <button id="menuBtn" onclick="toggleDrawer()" class="w-10 h-10 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors">
+            <span class="material-symbols-outlined">menu</span>
+        </button>
     </header>
 
-    <!-- Main Content Canvas -->
-    <main class="flex-1 lg:ml-64 pt-20 lg:pt-0 p-margin-mobile md:p-margin-desktop min-h-screen flex flex-col max-w-[1600px] mx-auto w-full">
-        <!-- Flash Messages -->
+    <!-- Mobile Drawer Overlay -->
+    <div id="drawerOverlay" onclick="toggleDrawer()" class="lg:hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm transition-opacity duration-300"></div>
+
+    <!-- Mobile Slide-Out Drawer -->
+    <nav id="mobileDrawer" class="lg:hidden fixed top-0 left-0 z-[70] w-72 h-full bg-surface border-r border-outline-variant/20 flex flex-col p-md gap-xs transition-transform duration-300 ease-out overflow-y-auto">
+        <div class="flex items-center justify-between mb-lg">
+            <div class="flex items-center gap-sm">
+                <span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">monitoring</span>
+                <span class="font-headline-md text-on-surface tracking-tight font-bold text-lg">Stock Sentinel</span>
+            </div>
+            <button onclick="toggleDrawer()" class="w-8 h-8 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors">
+                <span class="material-symbols-outlined text-xl">close</span>
+            </button>
+        </div>
+
+        <div class="flex items-center gap-sm p-sm mb-sm bg-surface-container-high/50 rounded-lg">
+            <div class="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center border border-primary/40 text-primary text-sm font-bold flex-shrink-0">
+                {{ current_user.username[0]|upper }}
+            </div>
+            <div class="flex flex-col overflow-hidden">
+                <span class="font-body-sm text-on-surface font-semibold truncate">{{ current_user.username }}</span>
+                <span class="font-label-caps text-label-caps text-on-surface-variant truncate" style="font-size:10px">{{ current_user.email }}</span>
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-xs flex-1">
+            <a href="{{ url_for('dashboard') }}" class="flex items-center gap-sm p-sm rounded-lg font-body-sm text-body-sm {% if request.endpoint in ['dashboard', 'view_portfolio'] %}bg-primary-container text-on-primary-container font-bold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high{% endif %} transition-colors">
+                <span class="material-symbols-outlined" {% if request.endpoint in ['dashboard', 'view_portfolio'] %}style="font-variation-settings: 'FILL' 1;"{% endif %}>Horse</span> Portfolios
+            </a>
+            <a href="{{ url_for('alerts') }}" class="flex items-center gap-sm p-sm rounded-lg font-body-sm text-body-sm {% if request.endpoint == 'alerts' %}bg-primary-container text-on-primary-container font-bold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high{% endif %} transition-colors">
+                <span class="material-symbols-outlined" {% if request.endpoint == 'alerts' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>notifications_active</span> Alerts
+            </a>
+            <a href="{{ url_for('analytics') }}" class="flex items-center gap-sm p-sm rounded-lg font-body-sm text-body-sm {% if request.endpoint == 'analytics' %}bg-primary-container text-on-primary-container font-bold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high{% endif %} transition-colors">
+                <span class="material-symbols-outlined" {% if request.endpoint == 'analytics' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>query_stats</span> Analytics
+            </a>
+            <div class="h-px bg-outline-variant/20 my-sm"></div>
+            <a href="{{ url_for('settings') }}" class="flex items-center gap-sm p-sm rounded-lg font-body-sm text-body-sm {% if request.endpoint == 'settings' %}bg-primary-container text-on-primary-container font-bold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high{% endif %} transition-colors">
+                <span class="material-symbols-outlined" {% if request.endpoint == 'settings' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>settings</span> Settings
+            </a>
+            <a href="{{ url_for('support') }}" class="flex items-center gap-sm p-sm rounded-lg font-body-sm text-body-sm {% if request.endpoint == 'support' %}bg-primary-container text-on-primary-container font-bold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high{% endif %} transition-colors">
+                <span class="material-symbols-outlined" {% if request.endpoint == 'support' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>help_outline</span> Support
+            </a>
+        </div>
+
+        <a href="{{ url_for('logout') }}" class="flex items-center gap-sm p-sm text-error/80 hover:text-error hover:bg-error-container/10 rounded-lg transition-colors font-body-sm text-body-sm mt-auto border-t border-outline-variant/20 pt-md">
+            <span class="material-symbols-outlined">logout</span> Sign Out
+        </a>
+    </nav>
+
+    <!-- Mobile Bottom Tab Bar -->
+    <nav class="lg:hidden fixed bottom-0 left-0 w-full z-40 bg-surface/95 backdrop-blur-xl border-t border-outline-variant/20">
+        <div class="flex justify-around items-center h-14 px-xs max-w-lg mx-auto">
+            <a href="{{ url_for('dashboard') }}" class="flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg transition-colors {% if request.endpoint in ['dashboard', 'view_portfolio'] %}text-primary{% else %}text-on-surface-variant{% endif %}">
+                <span class="material-symbols-outlined text-xl" {% if request.endpoint in ['dashboard', 'view_portfolio'] %}style="font-variation-settings: 'FILL' 1;"{% endif %}>Horse</span>
+                <span class="text-[10px] font-semibold leading-none">Portfolios</span>
+            </a>
+            <a href="{{ url_for('alerts') }}" class="flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg transition-colors {% if request.endpoint == 'alerts' %}text-primary{% else %}text-on-surface-variant{% endif %}">
+                <span class="material-symbols-outlined text-xl" {% if request.endpoint == 'alerts' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>notifications_active</span>
+                <span class="text-[10px] font-semibold leading-none">Alerts</span>
+            </a>
+            <a href="{{ url_for('analytics') }}" class="flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg transition-colors {% if request.endpoint == 'analytics' %}text-primary{% else %}text-on-surface-variant{% endif %}">
+                <span class="material-symbols-outlined text-xl" {% if request.endpoint == 'analytics' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>query_stats</span>
+                <span class="text-[10px] font-semibold leading-none">Analytics</span>
+            </a>
+            <a href="{{ url_for('settings') }}" class="flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg transition-colors {% if request.endpoint == 'settings' %}text-primary{% else %}text-on-surface-variant{% endif %}">
+                <span class="material-symbols-outlined text-xl" {% if request.endpoint == 'settings' %}style="font-variation-settings: 'FILL' 1;"{% endif %}>settings</span>
+                <span class="text-[10px] font-semibold leading-none">Settings</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 lg:ml-64 pt-16 pb-16 lg:pt-0 lg:pb-0 p-margin-mobile md:p-margin-desktop min-h-screen flex flex-col max-w-[1600px] mx-auto w-full">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="mb-md flex flex-col gap-sm w-full">
@@ -207,6 +287,13 @@
         {% block content %}{% endblock %}
     </main>
 
+    <script>
+    function toggleDrawer() {
+        document.getElementById('mobileDrawer').classList.toggle('open');
+        document.getElementById('drawerOverlay').classList.toggle('open');
+        document.body.style.overflow = document.getElementById('mobileDrawer').classList.contains('open') ? 'hidden' : '';
+    }
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
