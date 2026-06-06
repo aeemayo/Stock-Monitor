@@ -11,9 +11,10 @@ AI-powered stock monitoring dashboard. Track portfolios, get sentiment analysis 
 
 ## Tech Stack
 
-**Backend:** Flask · PostgreSQL · APScheduler · yfinance · Prophet · VADER Sentiment  
-**Frontend:** Tailwind CSS · Jinja2 · SVG charts · Material Symbols  
-**Auth:** Flask-Login + bcrypt (multi-tenant, session-based)
+- **Backend:** Python, Flask, PostgreSQL
+- **Data & AI:** yfinance, Prophet, VADER Sentiment, Pandas
+- **Frontend:** HTML/Jinja2, Tailwind CSS, Material Symbols
+- **Auth & Ops:** Flask-Login, bcrypt, APScheduler
 
 ## Quick Start
 
